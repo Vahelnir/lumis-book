@@ -2,20 +2,18 @@
 import { ref } from "vue";
 import BookFrame from "./components/BookFrame.vue";
 
-// const messages = ref<string[]>([
-//   "Ahah merci, bienvenue par ici ! :D",
-//   "Niceee elle est plus buguée",
-//   "Ptet qu'on pouvait en avoir qu'une à la fois en fait",
-//   "Fudge cétait où mar",
-//   "Merci beaucoup pour le prime A6doff !!! :D",
-//   // some more
-//   "Ahah merci, bienvenue par ici ! :D",
-//   "Niceee elle est plus buguée",
-//   "Ptet qu'on pouvait en avoir qu'une à la fois en fait",
-//   "Fudge cétait où mar",
-//   "Merci beaucoup pour le prime A6doff !!! :D",
-// ]);
-const messages = ref<string[]>([]);
+const messages = ref<string[]>([
+  "Ahah merci, bienvenue par ici ! :D",
+  "Niceee elle est plus buguée",
+  "Ptet qu'on pouvait en avoir qu'une à la fois en fait",
+  "Fudge cétait où mar",
+  "Merci beaucoup pour le prime A6doff !!! :D",
+  // some more
+  "Ahah merci, bienvenue par ici ! :D",
+  "Niceee elle est plus buguée",
+  "Ptet qu'on pouvait en avoir qu'une à la fois en fait",
+]);
+// const messages = ref<string[]>([]);
 
 const messageToAdd = ref("");
 
@@ -36,7 +34,7 @@ function addMessage() {
         <input
           v-model="messageToAdd"
           type="text"
-          class="px-2 py-1 border border-black rounded"
+          class="rounded border border-black px-2 py-1"
           @keyup.enter="addMessage()"
         />
       </label>
