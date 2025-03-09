@@ -1,5 +1,9 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import BookFrame from "./components/BookFrame.vue";
+</script>
 
 <template>
-  <main>hello</main>
+  <div class="p-4">
+    <BookFrame></BookFrame>
+  </div>
 </template>
