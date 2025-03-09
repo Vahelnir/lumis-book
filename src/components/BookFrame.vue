@@ -1,13 +1,7 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import TypeWriter from "./TypeWriter.vue";
 
-const messages = ref<string[]>([
-  "Ahah merci, bienvenue par ici ! :D",
-  "Niceee elle est plus buguée",
-  "Ptet qu'on pouvait en avoir qu'une à la fois en fait",
-  "Fudge cétait où mar",
-  "Merci beaucoup pour le prime A6doff !!! :D",
-]);
+const messages = defineModel<string[]>({ required: true });
 </script>
 
 <template>
@@ -16,11 +10,19 @@ const messages = ref<string[]>([
       <div
         v-for="message in messages"
         :key="message"
-        class="p-1 break-inside-avoid-column odd:bg-gray-100 rounded"
+        class="group/message break-inside-avoid-column relative"
       >
-        <p class="text-sm">
-          {{ message }}
-        </p>
+        <div class="p-1 group-odd/message:bg-gray-100 rounded absolute">
+          <p class="text-sm">
+            <TypeWriter :message />
+          </p>
+        </div>
+        <!-- Used to fix the size of the block to the real size -->
+        <div class="p-1 invisible">
+          <p class="text-sm">
+            {{ message }}
+          </p>
+        </div>
       </div>
     </div>
     <div
