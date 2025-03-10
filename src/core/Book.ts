@@ -17,10 +17,10 @@ function createMessageElement(props?: MessageProps) {
 
 function createPageElement(side: "left" | "right") {
   const page = document.createElement("div");
-  const classes = tw`absolute right-0 flex h-full w-1/2 flex-col border bg-white shadow transition-transform duration-1000 transform-3d even:border-l-0`;
+  const classes = tw`absolute right-0 flex h-full w-1/2 flex-col border bg-white shadow transition-transform duration-1000 backface-hidden transform-3d even:border-l-0`;
   const sideClasses = {
-    left: tw`left-0 origin-right`,
-    right: tw`right-0 origin-left`,
+    left: tw`left-0 origin-right rounded-lg rounded-r-none`,
+    right: tw`right-0 origin-left rounded-lg rounded-l-none`,
   };
   page.classList.add(...classes.split(" "), ...sideClasses[side].split(" "));
 
@@ -45,7 +45,7 @@ export class Book {
 
   constructor(private book: HTMLElement) {
     this.resetBookContent();
-    this.book.className = tw`relative flex h-60 w-80 rounded-lg bg-white perspective-distant`;
+    this.book.className = tw`relative flex h-60 w-80 rounded-lg bg-white perspective-distant transform-3d`;
 
     this.createPages();
 

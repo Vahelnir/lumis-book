@@ -26,7 +26,7 @@ function addMessage() {
 
 <template>
   <div class="p-4">
-    <BookFrame v-model="messages"></BookFrame>
+    <BookFrame></BookFrame>
 
     <div>
       <label class="flex flex-col">
