@@ -10,7 +10,6 @@ type Message = {
 type PageState = {
   index: number;
   messages: Message[];
-  side: "left" | "right";
   flipping: boolean;
   element?: HTMLElement;
 };
@@ -19,7 +18,6 @@ const pages = ref<PageState[]>([
   {
     index: 0,
     messages: [],
-    side: "left",
     flipping: false,
   },
 ]);
@@ -29,7 +27,7 @@ const lastMessage = ref<Message>();
 const FLIPPING_ANIMATION_DURATION = 1000;
 
 const visiblePages = computed(() => {
-  if (currentPageIndex.value % 2 === 0) {
+  if (isLeftPage(getPage())) {
     return [currentPageIndex.value, currentPageIndex.value + 1];
   }
 
@@ -98,12 +96,11 @@ async function nextPage() {
   const newPage: PageState = {
     index: currentPage.index + 1,
     messages: [],
-    side: currentPage.side === "left" ? "right" : "left",
     flipping: false,
   };
   pages.value.push(newPage);
 
-  const mustFlip = newPage.side === "left";
+  const mustFlip = isLeftPage(newPage);
 
   if (mustFlip) {
     currentPage.flipping = true;
@@ -138,6 +135,10 @@ function getPage(index: number = 0) {
 
 function getCurrentPage() {
   return getPage();
+}
+
+function isLeftPage(page: PageState) {
+  return page.index % 2 === 0;
 }
 
 /** VanillaJS way */
@@ -177,12 +178,10 @@ async function addMessageEvent() {
       :style="{ transitionDuration: `${FLIPPING_ANIMATION_DURATION}ms` }"
       :class="[
         {
-          'left-0 origin-right rounded-lg rounded-r-none': page.side === 'left',
-          'right-0 origin-left rounded-lg rounded-l-none':
-            page.side === 'right',
-          '-rotate-y-180':
-            page.side === 'right' && page.index < visiblePages[0],
-          'rotate-y-180': page.side === 'left' && page.index > visiblePages[1],
+          'left-0 origin-right rounded-lg rounded-r-none': isLeftPage(page),
+          'right-0 origin-left rounded-lg rounded-l-none': !isLeftPage(page),
+          'rotate-y-180': isLeftPage(page) && page.index > visiblePages[1],
+          '-rotate-y-180': !isLeftPage(page) && page.index < visiblePages[0],
           hidden:
             visiblePages[0] - 2 > page.index ||
             page.index > visiblePages[1] + 2,
