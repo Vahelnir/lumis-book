@@ -1,6 +1,11 @@
 import { tw } from "@/utils/tw";
+import { typeWriter } from "@/utils/type-writer";
+import { wait } from "@/utils/wait";
+
+const FLIPPING_ANIMATION_DURATION = 1000;
 
 type MessageProps = { color?: "white" | "gray" };
+
 function createMessageElement(props?: MessageProps) {
   const options = { color: "white", ...props };
 
@@ -17,12 +22,13 @@ function createMessageElement(props?: MessageProps) {
 
 function createPageElement(side: "left" | "right") {
   const page = document.createElement("div");
-  const classes = tw`absolute right-0 flex h-full w-1/2 flex-col border bg-white shadow transition-transform duration-1000 backface-hidden transform-3d even:border-l-0`;
+  const classes = tw`absolute right-0 flex h-full w-1/2 flex-col border bg-white shadow transition-transform backface-hidden transform-3d even:border-l-0`;
   const sideClasses = {
     left: tw`left-0 origin-right rounded-lg rounded-r-none`,
     right: tw`right-0 origin-left rounded-lg rounded-l-none`,
   };
   page.classList.add(...classes.split(" "), ...sideClasses[side].split(" "));
+  page.style.transitionDuration = `${FLIPPING_ANIMATION_DURATION}ms`;
 
   const pageContent = document.createElement("div");
   pageContent.classList.add(
@@ -70,7 +76,37 @@ export class Book {
     }
   }
 
-  public async addMessage(text: string, receivedMessageProps?: MessageProps) {
+  public async tryFitMessage(
+    messageElement: HTMLElement,
+    pageContent: HTMLElement,
+    words: string[],
+  ) {
+    messageElement.textContent = words[0] + " ";
+    if (pageContent.scrollHeight > pageContent.clientHeight) {
+      return { text: undefined, overflowingText: words.join(" ") };
+    }
+
+    for (let index = 1; index < words.length; index++) {
+      const word = words[index];
+      messageElement.textContent += word + " ";
+
+      if (pageContent.scrollHeight <= pageContent.clientHeight) {
+        continue;
+      }
+
+      return {
+        text: messageElement.textContent?.slice(0, -(word.length + 1)),
+        overflowingText: "... " + words.slice(index).join(" "),
+      };
+    }
+
+    return { text: messageElement.textContent, overflowingText: undefined };
+  }
+
+  public async addMessage(
+    message: string,
+    receivedMessageProps?: MessageProps,
+  ): Promise<void> {
     if (receivedMessageProps?.color) {
       this.previousMessageColor = receivedMessageProps.color;
     } else {
@@ -84,39 +120,37 @@ export class Book {
     };
     const messageElement = createMessageElement(usedMessageProps);
     this.currentContent.appendChild(messageElement);
-    // if the page is already overflowing, then we need to write to the next page
-    if (this.currentContent.scrollHeight > this.currentContent.clientHeight) {
+
+    const { text, overflowingText } = await this.tryFitMessage(
+      messageElement,
+      this.currentContent,
+      message.split(" "),
+    );
+    if (!text) {
       this.currentContent.removeChild(messageElement);
       await this.nextPage();
+      await this.addMessage(message, usedMessageProps);
+      return;
     }
 
-    this.currentContent.appendChild(messageElement);
-    const words = text.split(" ");
-    for (let index = 0; index < words.length; index++) {
-      const word = words[index];
-      messageElement.innerHTML += word + " ";
-      if (
-        this.currentContent.scrollHeight <= this.currentContent.clientHeight
-      ) {
-        continue;
-      }
+    messageElement.textContent = "";
+    await typeWriter(text, (letter) => {
+      messageElement.textContent += letter;
+    });
 
-      messageElement.innerHTML = messageElement.innerHTML.slice(
-        0,
-        -(word.length + 1),
-      );
-
-      const overflowText = words.slice(index).join(" ");
-      await this.nextPage();
-      console.log("overflowText", overflowText);
-      // add the elipsis to the new page, and then the overflowed text
-      this.addMessage("... " + overflowText, usedMessageProps);
+    if (overflowingText) {
+      await this.nextPage(true);
+      await this.addMessage(overflowingText, usedMessageProps);
       return;
     }
   }
 
-  public async nextPage() {
+  public async nextPage(isContinuingWriting = false) {
     if (this.currentContent === this.rightContent) {
+      if (isContinuingWriting) {
+        await wait(2000);
+      }
+
       await this.flipPage();
       this.currentContent = this.leftContent;
       return;
@@ -145,7 +179,7 @@ export class Book {
         oldLeftPage.classList.add("hidden");
         oldRightPage.classList.add("hidden");
         resolve();
-      }, 1000); // Match the CSS transition time
+      }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition time
     });
   }
 

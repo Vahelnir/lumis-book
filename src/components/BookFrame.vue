@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, useTemplateRef, watch } from "vue";
 import { Book } from "@/core/Book";
+import { typeWriter } from "@/utils/type-writer";
+import { wait } from "@/utils/wait";
 
 type Message = {
   id: number;
@@ -73,13 +75,10 @@ async function addMessage(textContent: string, color?: "white" | "gray") {
   document.body.appendChild(currentPageContent);
 
   const { text, overflowingText } = tryFitMessage(currentPageContent, words);
-
   if (!text) {
     // remove the added message because it doesn't fit
     currentPage.messages.pop();
-
     await nextPage();
-
     return addMessage(textContent, color);
   }
 
@@ -92,29 +91,9 @@ async function addMessage(textContent: string, color?: "white" | "gray") {
   });
 
   if (overflowingText) {
-    await nextPage();
+    await nextPage(true);
     return addMessage(overflowingText, color);
   }
-}
-
-function seconds(seconds: number) {
-  return new Promise<void>((resolve) =>
-    setTimeout(() => resolve(), seconds * 1000),
-  );
-}
-
-function typeWriter(text: string, func: (letter: string) => void) {
-  return new Promise<void>((resolve) => {
-    let index = 0;
-    const intervalId = setInterval(async () => {
-      func(text[index++]);
-
-      if (intervalId && index >= text.length) {
-        clearInterval(intervalId);
-        resolve();
-      }
-    }, 40);
-  });
 }
 
 function tryFitMessage(pageContent: HTMLElement, words: string[]) {
@@ -141,7 +120,7 @@ function tryFitMessage(pageContent: HTMLElement, words: string[]) {
   return { text: messageElement.textContent, overflowingText: undefined };
 }
 
-async function nextPage() {
+async function nextPage(isContinuingWriting = false) {
   const currentPage = getCurrentPage();
   const newPage: PageState = {
     index: currentPage.index + 1,
@@ -153,7 +132,10 @@ async function nextPage() {
   const mustFlip = isLeftPage(newPage);
 
   if (mustFlip) {
-    await seconds(2);
+    if (isContinuingWriting) {
+      await wait(2000);
+    }
+
     currentPage.flipping = true;
     newPage.flipping = true;
   }
@@ -205,7 +187,7 @@ watch(bookElement, async (element, _, onCleanup) => {
   onCleanup(() => book?.destroy());
 });
 
-const disableButton = ref(false);
+const isMessageTyping = ref(false);
 async function addMessageEvent() {
   if (!book) {
     return;
@@ -217,9 +199,9 @@ async function addMessageEvent() {
   ];
   const message = messages[Math.floor(Math.random() * messages.length)];
 
-  disableButton.value = true;
+  isMessageTyping.value = true;
   await Promise.all([book.addMessage(message), addMessage(message)]);
-  disableButton.value = false;
+  isMessageTyping.value = false;
 }
 </script>
 
@@ -261,8 +243,8 @@ async function addMessageEvent() {
   <div class="h-10"></div>
   <div ref="bookElement"></div>
   <button
-    class="rounded border px-4 py-2"
-    :disabled="disableButton"
+    class="rounded border px-4 py-2 disabled:opacity-40"
+    :disabled="isMessageTyping"
     @click="addMessageEvent"
   >
     Add message
