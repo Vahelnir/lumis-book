@@ -35,7 +35,7 @@ async function addMessageEvent() {
 <template>
   <div ref="bookElement"></div>
   <button
-    class="rounded border px-4 py-2 disabled:opacity-40"
+    class="mt-20 rounded border px-4 py-2 disabled:opacity-40"
     :disabled="isMessageTyping"
     @click="addMessageEvent"
   >
