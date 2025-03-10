@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
+import { computed, nextTick, reactive, ref, useTemplateRef, watch } from "vue";
 import { Book } from "@/core/Book";
 
 type Message = {
@@ -34,20 +34,20 @@ const visiblePages = computed(() => {
   return [currentPageIndex.value - 1, currentPageIndex.value];
 });
 
-async function addMessage(text: string, color?: "white" | "gray") {
+async function addMessage(textContent: string, color?: "white" | "gray") {
   if (!color && lastMessage.value?.color) {
     color = lastMessage.value.color === "gray" ? "white" : "gray";
   }
 
   color ??= "white";
 
-  const words = text.split(" ");
+  const words = textContent.split(" ");
 
-  const message = {
+  const message = reactive({
     id: (lastMessage.value?.id ?? 0) + 1,
     text: words[0] + " ",
     color,
-  } satisfies Message;
+  } satisfies Message);
 
   const currentPage = getCurrentPage();
   currentPage.messages.push(message);
@@ -55,40 +55,69 @@ async function addMessage(text: string, color?: "white" | "gray") {
   await nextTick();
 
   // TODO: see if it is possible to work with a clone of the element
-  const currentPageContent = currentPage.element?.querySelector(
+  const originalPageContent = currentPage.element?.querySelector(
     "[data-book-page-content]",
   );
-  if (!currentPageContent || !(currentPageContent instanceof HTMLElement)) {
+  const currentPageContent = originalPageContent?.cloneNode(true);
+  if (
+    !originalPageContent ||
+    !currentPageContent ||
+    !(currentPageContent instanceof HTMLElement)
+  ) {
     throw new Error(`No page element found in page '${currentPage.index}''`);
   }
 
-  if (currentPageContent.scrollHeight > currentPageContent.clientHeight) {
+  currentPageContent.style.visibility = "hidden";
+  currentPageContent.style.height = originalPageContent.clientHeight + "px";
+  currentPageContent.style.width = originalPageContent.clientWidth + "px";
+  document.body.appendChild(currentPageContent);
+
+  const { text, overflowingText } = tryFitMessage(currentPageContent, words);
+
+  if (!text) {
     // remove the added message because it doesn't fit
     currentPage.messages.pop();
 
     await nextPage();
 
-    return addMessage(text, color);
+    return addMessage(textContent, color);
   }
 
+  // update the message to the right text
   lastMessage.value = message;
+  message.text = "";
 
   const messageElement =
     currentPageContent.children[currentPageContent.children.length - 1];
+
+  if (overflowingText) {
+    await nextPage();
+    return addMessage(overflowingText, color);
+  }
+}
+
+function tryFitMessage(pageContent: HTMLElement, words: string[]) {
+  if (pageContent.scrollHeight > pageContent.clientHeight) {
+    return { text: undefined, overflowingText: words.join(" ") };
+  }
+
+  const messageElement = pageContent.children[pageContent.children.length - 1];
+  messageElement.textContent = words[0] + " ";
   for (let index = 1; index < words.length; index++) {
     const word = words[index];
-    messageElement.innerHTML += word + " ";
-    if (currentPageContent.scrollHeight <= currentPageContent.clientHeight) {
+    messageElement.textContent += word + " ";
+
+    if (pageContent.scrollHeight <= pageContent.clientHeight) {
       continue;
     }
 
-    message.text = messageElement.innerHTML.slice(0, -(word.length + 1));
-
-    const overflowText = words.slice(index).join(" ");
-    console.log("overflowText", overflowText);
-    await nextPage();
-    return addMessage("... " + overflowText, color);
+    return {
+      text: messageElement.textContent?.slice(0, -(word.length + 1)),
+      overflowingText: "... " + words.slice(index).join(" "),
+    };
   }
+
+  return { text: messageElement.textContent, overflowingText: undefined };
 }
 
 async function nextPage() {
