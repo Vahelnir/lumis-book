@@ -87,13 +87,34 @@ async function addMessage(textContent: string, color?: "white" | "gray") {
   lastMessage.value = message;
   message.text = "";
 
-  const messageElement =
-    currentPageContent.children[currentPageContent.children.length - 1];
+  await typeWriter(text, (letter) => {
+    message.text += letter;
+  });
 
   if (overflowingText) {
     await nextPage();
     return addMessage(overflowingText, color);
   }
+}
+
+function seconds(seconds: number) {
+  return new Promise<void>((resolve) =>
+    setTimeout(() => resolve(), seconds * 1000),
+  );
+}
+
+function typeWriter(text: string, func: (letter: string) => void) {
+  return new Promise<void>((resolve) => {
+    let index = 0;
+    const intervalId = setInterval(async () => {
+      func(text[index++]);
+
+      if (intervalId && index >= text.length) {
+        clearInterval(intervalId);
+        resolve();
+      }
+    }, 40);
+  });
 }
 
 function tryFitMessage(pageContent: HTMLElement, words: string[]) {
@@ -132,6 +153,7 @@ async function nextPage() {
   const mustFlip = isLeftPage(newPage);
 
   if (mustFlip) {
+    await seconds(2);
     currentPage.flipping = true;
     newPage.flipping = true;
   }
@@ -189,7 +211,11 @@ async function addMessageEvent() {
     return;
   }
 
-  const message = "Ahah merci, bienvenue par ici ! :D";
+  const messages = [
+    "Lorem ipsum dolor sit amet, consectetur.",
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+  ];
+  const message = messages[Math.floor(Math.random() * messages.length)];
 
   disableButton.value = true;
   await Promise.all([book.addMessage(message), addMessage(message)]);
