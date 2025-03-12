@@ -42,6 +42,17 @@ export class Book {
     this.events?.onCurrentPairChange(index);
   }
 
+  public async focusPage(page: Page) {
+    const pageIndex = this.pages.indexOf(page);
+    const pairIndex = Math.floor(pageIndex / 2);
+    await this.moveToPagePair(pairIndex);
+  }
+
+  public async moveToPagePair(index: number) {
+    const offset = index - this.currentPairIndex;
+    await this.movePagePair(offset);
+  }
+
   public async movePagePair(offset: number) {
     if (offset === 0) {
       return;
@@ -98,6 +109,10 @@ export class Book {
     message: string,
     color?: Message["color"],
   ): Promise<void> {
+    if (!this.currentPair.includes(this.currentWritingPage)) {
+      await this.focusPage(this.currentWritingPage);
+    }
+
     if (color) {
       this.previousMessageColor = color;
     } else {
@@ -133,7 +148,9 @@ export class Book {
         await wait(2000);
       }
 
-      await this.flipPage();
+      this.createPagePair();
+
+      await this.movePagePair(1);
       this.currentWritingPage = this.currentPair[0];
       return;
     }
@@ -147,36 +164,6 @@ export class Book {
     }
 
     this.book.innerHTML = "";
-  }
-
-  private async flipPage() {
-    const [oldLeftPage, oldRightPage] = this.currentPair;
-
-    const [leftPage, rightPage] = this.createPagePair();
-    leftPage.mount(this.book);
-    rightPage.mount(this.book);
-    this.currentPairIndex++;
-
-    // flip previous right page to the left
-    oldRightPage.element?.classList.add(tw`-rotate-y-180`);
-    // force the new leftPage to be flipped OVER the current right page
-    leftPage.element?.classList.add(tw`rotate-y-180`);
-
-    // wait for the browser to properly render the flipped pages
-    await nextRepaint();
-
-    // then force the left page to animate to its expected position
-    leftPage.element?.classList.remove(tw`rotate-y-180`);
-
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        // hide the old pages (we could remove them from the dom too)
-        oldLeftPage.unmount();
-        oldRightPage.unmount();
-
-        resolve();
-      }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition time
-    });
   }
 
   private get currentPair() {
