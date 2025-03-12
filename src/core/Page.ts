@@ -1,6 +1,7 @@
 import { tw } from "@/utils/tw";
 import { FLIPPING_ANIMATION_DURATION } from "./book";
-import { createMessageElement } from "./message";
+import { createMessageElement, type Message } from "./message";
+import { typeWriter } from "@/utils/type-writer";
 
 const PAGE_CLASSES = tw`absolute right-0 flex h-full w-1/2 flex-col border bg-white shadow transition-transform backface-hidden transform-3d even:border-l-0`;
 const PAGE_SIDE_CLASSES = {
@@ -20,6 +21,8 @@ export type PageSide = "left" | "right";
 export class Page {
   public element: HTMLElement;
   public contentElement: HTMLElement;
+
+  public messages: Message[] = [];
 
   constructor(public side: PageSide) {
     this.element = this.createElement();
@@ -71,8 +74,16 @@ export class Page {
     return { text: fakeMessageElement.textContent, overflowingText: undefined };
   }
 
-  public appendChild(element: Element) {
-    return this.contentElement.appendChild(element);
+  public async writeMessage(message: Message) {
+    this.messages.push(message);
+
+    const messageElement = createMessageElement(message.color);
+    this.contentElement.appendChild(messageElement);
+
+    messageElement.textContent = "";
+    await typeWriter(message.text, (letter) => {
+      messageElement.textContent += letter;
+    });
   }
 
   public destroy() {

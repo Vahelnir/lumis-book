@@ -84,12 +84,9 @@ export class Book {
       return;
     }
 
-    const messageElement = createMessageElement(this.previousMessageColor);
-    this.currentWritingPage.appendChild(messageElement);
-
-    messageElement.textContent = "";
-    await typeWriter(text, (letter) => {
-      messageElement.textContent += letter;
+    await this.currentWritingPage.writeMessage({
+      text,
+      color: this.previousMessageColor,
     });
 
     if (overflowingText) {
