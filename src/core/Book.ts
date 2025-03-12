@@ -54,9 +54,44 @@ export class Book {
 
     targetPair.map((page) => page.mount(this.book));
 
-    this.currentPair.map((page) => page.unmount());
+    const [oldLeftPage, oldRightPage] = this.currentPair;
+    if (offset > 0) {
+      const [leftPage] = targetPair;
+      // flip previous right page to the left
+      oldRightPage.element?.classList.add(tw`-rotate-y-180`);
+      // force the new leftPage to be flipped OVER the current right page
+      leftPage.element?.classList.add(tw`rotate-y-180`);
 
-    this.currentPairIndex += offset;
+      // wait for the browser to properly render the flipped pages
+      await nextRepaint();
+
+      // then force the left page to animate to its expected position
+      leftPage.element?.classList.remove(tw`rotate-y-180`);
+    } else {
+      const [, rightPage] = targetPair;
+      // flip previous right page to the left
+      oldLeftPage.element?.classList.add(tw`rotate-y-180`);
+      // force the new leftPage to be flipped OVER the current right page
+      rightPage.element?.classList.add(tw`-rotate-y-180`);
+
+      // wait for the browser to properly render the flipped pages
+      await nextRepaint();
+
+      // then force the left page to animate to its expected position
+      rightPage.element?.classList.remove(tw`-rotate-y-180`);
+    }
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        // hide the old pages (we could remove them from the dom too)
+        oldLeftPage.unmount();
+        oldRightPage.unmount();
+
+        this.currentPairIndex += offset;
+
+        resolve();
+      }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition time
+    });
   }
 
   public async writeMessage(
