@@ -20,11 +20,28 @@ export class Book {
     this.prepareBookElement();
 
     const [left, right] = this.createPagePair();
-    this.book.appendChild(left.element);
-    this.book.appendChild(right.element);
+    left.mount(this.book);
+    right.mount(this.book);
     this.currentWritingPage = left;
 
     this.currentPairIndex = 0;
+  }
+
+  public async movePagePair(offset: number) {
+    if (offset === 0) {
+      return;
+    }
+
+    const targetPair = this.getPair(this.currentPairIndex + offset);
+    if (!targetPair) {
+      return;
+    }
+
+    targetPair.map((page) => page.mount(this.book));
+
+    this.currentPair.map((page) => page.unmount());
+
+    this.currentPairIndex += offset;
   }
 
   public async writeMessage(
@@ -42,7 +59,7 @@ export class Book {
       message.split(" "),
     );
     if (!text) {
-      await this.nextPage();
+      await this.moveWritingPage();
       await this.writeMessage(message, this.previousMessageColor);
       return;
     }
@@ -53,13 +70,13 @@ export class Book {
     });
 
     if (overflowingText) {
-      await this.nextPage(true);
+      await this.moveWritingPage(true);
       await this.writeMessage(overflowingText, this.previousMessageColor);
       return;
     }
   }
 
-  public async nextPage(isContinuingWriting = false) {
+  public async moveWritingPage(isContinuingWriting = false) {
     if (this.currentWritingPage.side === "right") {
       // If we reach the end of the right page, and still have stuff to write
       if (isContinuingWriting) {
@@ -74,39 +91,42 @@ export class Book {
     this.currentWritingPage = this.currentPair[1];
   }
 
-  public async flipPage() {
+  public destroy() {
+    for (const page of this.pages) {
+      page.destroy();
+    }
+
+    this.book.innerHTML = "";
+  }
+
+  private async flipPage() {
     const [oldLeftPage, oldRightPage] = this.currentPair;
 
     const [leftPage, rightPage] = this.createPagePair();
-    this.book.appendChild(leftPage.element);
-    this.book.appendChild(rightPage.element);
+    leftPage.mount(this.book);
+    rightPage.mount(this.book);
     this.currentPairIndex++;
 
     // flip previous right page to the left
-    oldRightPage.element.classList.add(tw`-rotate-y-180`);
+    oldRightPage.element?.classList.add(tw`-rotate-y-180`);
     // force the new leftPage to be flipped OVER the current right page
-    leftPage.element.classList.add(tw`rotate-y-180`);
+    leftPage.element?.classList.add(tw`rotate-y-180`);
 
     // wait for the browser to properly render the flipped pages
     await nextRepaint();
 
     // then force the left page to animate to its expected position
-    leftPage.element.classList.remove(tw`rotate-y-180`);
+    leftPage.element?.classList.remove(tw`rotate-y-180`);
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         // hide the old pages (we could remove them from the dom too)
-        oldLeftPage.destroy();
-        oldRightPage.destroy();
+        oldLeftPage.unmount();
+        oldRightPage.unmount();
 
         resolve();
       }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition time
     });
-  }
-
-  public destroy() {
-    this.book.innerHTML = "";
-    // TODO: clear all intervals (maybe use an AbortController?)
   }
 
   private get currentPair() {
@@ -122,11 +142,13 @@ export class Book {
 
   private getPair(index: number): [Page, Page] | undefined {
     const pageIndex = index * 2;
-    if (this.pages.length <= pageIndex) {
+    const left = this.pages[pageIndex];
+    const right = this.pages[pageIndex + 1];
+    if (!left || !right) {
       return undefined;
     }
 
-    return [this.pages[pageIndex], this.pages[pageIndex + 1]];
+    return [left, right];
   }
 
   private createPagePair(): [Page, Page] {

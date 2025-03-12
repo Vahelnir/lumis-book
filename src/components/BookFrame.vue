@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import { ref, useTemplateRef, watch } from "vue";
+import { ref, shallowRef, useTemplateRef, watch } from "vue";
 import { Book } from "@/core/book";
+import UIButton from "./UIButton.vue";
 
 const bookElement = useTemplateRef("bookElement");
-let book: Book | undefined;
+const book = shallowRef<Book>();
 watch(bookElement, async (element, _, onCleanup) => {
   if (!element) {
     return;
   }
 
-  book = new Book(element);
+  book.value = new Book(element);
 
-  onCleanup(() => book?.destroy());
+  onCleanup(() => book.value?.destroy());
 });
 
 const isMessageTyping = ref(false);
 async function addMessageEvent() {
-  if (!book) {
+  if (!book.value) {
     return;
   }
 
@@ -27,18 +28,24 @@ async function addMessageEvent() {
   const message = messages[Math.floor(Math.random() * messages.length)];
 
   isMessageTyping.value = true;
-  await book.writeMessage(message);
+  await book.value.writeMessage(message);
   isMessageTyping.value = false;
 }
 </script>
 
 <template>
   <div ref="bookElement"></div>
-  <button
-    class="mt-20 rounded border px-4 py-2 disabled:opacity-40"
-    :disabled="isMessageTyping"
-    @click="addMessageEvent"
-  >
-    Add message
-  </button>
+  <div v-if="book" class="mt-20 flex gap-2">
+    <div class="flex items-center gap-2">
+      <UIButton @click="book.movePagePair(-1)">Previous</UIButton>
+      <div>
+        {{ book.currentPairIndex + 1 }} /
+        {{ Math.round(book.pages.length / 2) }}
+      </div>
+      <UIButton @click="book.movePagePair(1)">Next</UIButton>
+    </div>
+    <UIButton :disabled="isMessageTyping" @click="addMessageEvent">
+      Add message
+    </UIButton>
+  </div>
 </template>

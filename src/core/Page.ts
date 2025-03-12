@@ -19,16 +19,19 @@ type Size = {
 export type PageSide = "left" | "right";
 
 export class Page {
-  public element: HTMLElement;
-  public contentElement: HTMLElement;
+  public element?: HTMLElement;
+  public contentElement?: HTMLElement;
 
   public messages: Message[] = [];
 
-  constructor(public side: PageSide) {
-    this.element = this.createElement();
-    this.contentElement = this.createContentElement();
+  constructor(public side: PageSide) {}
 
-    this.element.appendChild(this.contentElement);
+  private getContentElementOrFail() {
+    if (!this.contentElement) {
+      throw new Error("Content element is not defined");
+    }
+
+    return this.contentElement;
   }
 
   /**
@@ -37,9 +40,10 @@ export class Page {
    * It tries to fit the message inside of a clone of the `pageContent` element.
    */
   public tryFittingMessage(words: string[]) {
+    const contentElement = this.getContentElementOrFail();
     const size = {
-      width: this.contentElement.clientWidth,
-      height: this.contentElement.clientHeight,
+      width: contentElement.clientWidth,
+      height: contentElement.clientHeight,
     };
 
     const clonedElement = this.cloneForFitting(size);
@@ -77,8 +81,7 @@ export class Page {
   public async writeMessage(message: Message) {
     this.messages.push(message);
 
-    const messageElement = createMessageElement(message.color);
-    this.contentElement.appendChild(messageElement);
+    const messageElement = this.addMessage(message);
 
     messageElement.textContent = "";
     await typeWriter(message.text, (letter) => {
@@ -86,13 +89,44 @@ export class Page {
     });
   }
 
+  public mount(parent: HTMLElement) {
+    this.element = this.createElement();
+    this.contentElement = this.createContentElement();
+
+    for (const message of this.messages) {
+      this.addMessage(message);
+    }
+
+    this.element.appendChild(this.contentElement);
+
+    parent.appendChild(this.element);
+  }
+
+  public unmount() {
+    this.element?.remove();
+    this.element = undefined;
+
+    this.contentElement?.remove();
+    this.contentElement = undefined;
+  }
+
   public destroy() {
-    this.element.remove();
-    this.contentElement.remove();
+    this.unmount();
+  }
+
+  private addMessage(message: Message) {
+    const messageElement = createMessageElement(message.color);
+    this.getContentElementOrFail().appendChild(messageElement);
+
+    messageElement.textContent = message.text;
+
+    return messageElement;
   }
 
   private cloneForFitting(size: Size) {
-    const clonedElement = this.contentElement.cloneNode(true) as HTMLElement;
+    const clonedElement = this.getContentElementOrFail().cloneNode(
+      true,
+    ) as HTMLElement;
     clonedElement.style.visibility = "hidden";
     clonedElement.style.position = "absolute";
     clonedElement.style.left = `-${size.width}px`;
