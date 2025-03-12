@@ -26,7 +26,7 @@ watch(bookElement, async (element, _, onCleanup) => {
   onCleanup(() => book.value?.destroy());
 });
 
-const isMessageTyping = ref(false);
+const loading = ref(false);
 async function addMessageEvent() {
   if (!book.value) {
     return;
@@ -38,9 +38,13 @@ async function addMessageEvent() {
   ];
   const message = messages[Math.floor(Math.random() * messages.length)];
 
-  isMessageTyping.value = true;
-  await book.value.writeMessage(message);
-  isMessageTyping.value = false;
+  await handleLoading(book.value?.writeMessage(message));
+}
+
+async function handleLoading(promise: Promise<unknown>) {
+  loading.value = true;
+  await promise;
+  loading.value = false;
 }
 </script>
 
@@ -48,14 +52,24 @@ async function addMessageEvent() {
   <div ref="bookElement"></div>
   <div v-if="book" class="mt-20 flex gap-2">
     <div class="flex items-center gap-2">
-      <UIButton @click="book.movePagePair(-1)">Previous</UIButton>
+      <UIButton
+        :disabled="loading"
+        @click="handleLoading(book.movePagePair(-1))"
+      >
+        Previous
+      </UIButton>
       <div>
         {{ currentPair + 1 }} /
         {{ pairCount }}
       </div>
-      <UIButton @click="book.movePagePair(1)">Next</UIButton>
+      <UIButton
+        :disabled="loading"
+        @click="handleLoading(book.movePagePair(1))"
+      >
+        Next
+      </UIButton>
     </div>
-    <UIButton :disabled="isMessageTyping" @click="addMessageEvent">
+    <UIButton :disabled="loading" @click="addMessageEvent">
       Add message
     </UIButton>
   </div>
