@@ -26,6 +26,17 @@ watch(bookElement, async (element, _, onCleanup) => {
   onCleanup(() => book.value?.destroy());
 });
 
+const message = ref("");
+async function sendMessage() {
+  if (!book.value) {
+    return;
+  }
+
+  const text = message.value;
+  message.value = "";
+  await handleLoading(book.value?.writeMessage(text));
+}
+
 const loading = ref(false);
 async function addMessageEvent() {
   if (!book.value) {
@@ -50,10 +61,16 @@ async function handleLoading(promise: Promise<unknown>) {
 
 <template>
   <div ref="bookElement"></div>
-  <div v-if="book" class="mt-20 flex gap-2">
+  <div v-if="book" class="mt-20 flex flex-col gap-4">
     <div class="flex items-center gap-2">
       <UIButton
-        :disabled="loading"
+        :disabled="loading || currentPair <= 0"
+        @click="handleLoading(book.moveToPagePair(0))"
+      >
+        First
+      </UIButton>
+      <UIButton
+        :disabled="loading || currentPair <= 0"
         @click="handleLoading(book.movePagePair(-1))"
       >
         Previous
@@ -63,14 +80,26 @@ async function handleLoading(promise: Promise<unknown>) {
         {{ pairCount }}
       </div>
       <UIButton
-        :disabled="loading"
+        :disabled="loading || currentPair + 1 >= pairCount"
         @click="handleLoading(book.movePagePair(1))"
       >
         Next
       </UIButton>
+      <UIButton
+        :disabled="loading || currentPair + 1 >= pairCount"
+        @click="handleLoading(book.moveToPagePair(pairCount - 1))"
+      >
+        Last
+      </UIButton>
+
+      <UIButton :disabled="loading" @click="addMessageEvent">
+        Add lorem ipsum
+      </UIButton>
     </div>
-    <UIButton :disabled="loading" @click="addMessageEvent">
-      Add message
-    </UIButton>
+
+    <div class="flex w-80 gap-2">
+      <textarea v-model="message" class="w-full rounded border px-4 py-2" />
+      <UIButton :disabled="loading" @click="sendMessage">Send</UIButton>
+    </div>
   </div>
 </template>
