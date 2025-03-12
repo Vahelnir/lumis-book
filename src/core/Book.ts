@@ -1,7 +1,8 @@
 import { tw } from "@/utils/tw";
 import { typeWriter } from "@/utils/type-writer";
 import { wait } from "@/utils/wait";
-import { Page } from "./Page";
+import { Page } from "./page";
+import { createMessageElement, type Message } from "./message";
 
 export const FLIPPING_ANIMATION_DURATION = 1000;
 
@@ -11,9 +12,9 @@ export class Book {
   leftPage: Page;
   rightPage: Page;
 
-  currentPage: Page;
+  currentWritingPage: Page;
 
-  previousMessageColor: "white" | "gray" = "gray";
+  previousMessageColor: Message["color"] = "gray";
 
   constructor(private book: HTMLElement) {
     this.prepareBookElement();
@@ -23,7 +24,7 @@ export class Book {
     this.book.appendChild(this.leftPage.element);
     this.book.appendChild(this.rightPage.element);
 
-    this.currentPage = this.leftPage;
+    this.currentWritingPage = this.leftPage;
   }
 
   private prepareBookElement() {
@@ -34,84 +35,28 @@ export class Book {
     this.book.className = tw`relative flex h-60 w-80 rounded-lg bg-white perspective-distant transform-3d`;
   }
 
-  /**
-   * Try to fit the message in the current page.
-   * It will return the text that fits (or undefined if nothing fits) and the overflowing text (or undefined if nothing overflowed).
-   * It tries to fit the message inside of a clone of the `pageContent` element.
-   */
-  public async tryFittingMessage(page: Page, words: string[]) {
-    const pageContent = page.contentElement;
-    const size = {
-      width: pageContent.clientWidth,
-      height: pageContent.clientHeight,
-    };
-
-    const clonedElement = pageContent.cloneNode(true) as HTMLElement;
-    clonedElement.style.visibility = "hidden";
-    clonedElement.style.position = "absolute";
-    clonedElement.style.left = `-${size.width}px`;
-    clonedElement.style.width = `${size.width}px`;
-    clonedElement.style.height = `${size.height}px`;
-    document.body.appendChild(clonedElement);
-
-    // TODO: create the fake element with the same styles as the real message
-    const fakeMessageElement = createMessageElement();
-    fakeMessageElement.textContent = words[0] + " ";
-    clonedElement.appendChild(fakeMessageElement);
-
-    if (clonedElement.scrollHeight > clonedElement.clientHeight) {
-      return { text: undefined, overflowingText: words.join(" ") };
-    }
-
-    for (let index = 1; index < words.length; index++) {
-      const word = words[index];
-      fakeMessageElement.textContent += word + " ";
-
-      if (clonedElement.scrollHeight <= clonedElement.clientHeight) {
-        continue;
-      }
-
-      clonedElement.remove();
-
-      return {
-        text: fakeMessageElement.textContent?.slice(0, -(word.length + 1)),
-        overflowingText: "... " + words.slice(index).join(" "),
-      };
-    }
-
-    clonedElement.remove();
-
-    return { text: fakeMessageElement.textContent, overflowingText: undefined };
-  }
-
   public async writeMessage(
     message: string,
-    receivedMessageProps?: MessageProps,
+    color?: Message["color"],
   ): Promise<void> {
-    if (receivedMessageProps?.color) {
-      this.previousMessageColor = receivedMessageProps.color;
+    if (color) {
+      this.previousMessageColor = color;
     } else {
       this.previousMessageColor =
         this.previousMessageColor === "gray" ? "white" : "gray";
     }
 
-    const usedMessageProps = {
-      color: this.previousMessageColor,
-      ...receivedMessageProps,
-    };
-
-    const { text, overflowingText } = await this.tryFittingMessage(
-      this.currentPage,
+    const { text, overflowingText } = this.currentWritingPage.tryFittingMessage(
       message.split(" "),
     );
     if (!text) {
       await this.nextPage();
-      await this.writeMessage(message, usedMessageProps);
+      await this.writeMessage(message, color);
       return;
     }
 
-    const messageElement = createMessageElement(usedMessageProps);
-    this.currentPage.appendChild(messageElement);
+    const messageElement = createMessageElement(this.previousMessageColor);
+    this.currentWritingPage.appendChild(messageElement);
 
     messageElement.textContent = "";
     await typeWriter(text, (letter) => {
@@ -120,24 +65,24 @@ export class Book {
 
     if (overflowingText) {
       await this.nextPage(true);
-      await this.writeMessage(overflowingText, usedMessageProps);
+      await this.writeMessage(overflowingText, color);
       return;
     }
   }
 
   public async nextPage(isContinuingWriting = false) {
-    if (this.currentPage === this.rightPage) {
+    if (this.currentWritingPage === this.rightPage) {
       // If we reach the end of the right page, and still have stuff to write
       if (isContinuingWriting) {
         await wait(2000);
       }
 
       await this.flipPage();
-      this.currentPage = this.leftPage;
+      this.currentWritingPage = this.leftPage;
       return;
     }
 
-    this.currentPage = this.rightPage;
+    this.currentWritingPage = this.rightPage;
   }
 
   public async flipPage() {
@@ -186,18 +131,4 @@ function nextRepaint() {
       });
     });
   });
-}
-
-function createMessageElement(props?: MessageProps) {
-  const options = { color: "white", ...props };
-
-  const messageBlock = document.createElement("div");
-  messageBlock.classList.add(
-    ...tw`message rounded p-1 backface-hidden`.split(" "),
-  );
-  if (options.color === "gray") {
-    messageBlock.classList.add(tw`bg-gray-200`);
-  }
-
-  return messageBlock;
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, useTemplateRef, watch } from "vue";
-import { Book } from "@/core/Book";
+import { Book } from "@/core/book";
 
 const bookElement = useTemplateRef("bookElement");
 let book: Book | undefined;
