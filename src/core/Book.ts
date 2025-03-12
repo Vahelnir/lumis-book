@@ -9,8 +9,9 @@ export const FLIPPING_ANIMATION_DURATION = 1000;
 export type MessageProps = { color?: "white" | "gray" };
 
 export class Book {
-  leftPage: Page;
-  rightPage: Page;
+  pages: Page[] = [];
+
+  currentPairIndex = 0;
 
   currentWritingPage: Page;
 
@@ -19,12 +20,40 @@ export class Book {
   constructor(private book: HTMLElement) {
     this.prepareBookElement();
 
-    this.leftPage = new Page("left");
-    this.rightPage = new Page("right");
-    this.book.appendChild(this.leftPage.element);
-    this.book.appendChild(this.rightPage.element);
+    const [left, right] = this.createPagePair();
+    this.book.appendChild(left.element);
+    this.book.appendChild(right.element);
+    this.currentWritingPage = left;
 
-    this.currentWritingPage = this.leftPage;
+    this.currentPairIndex = 0;
+  }
+
+  get currentPair() {
+    const pair = this.getPair(this.currentPairIndex);
+    if (!pair) {
+      throw new Error(
+        `No pair of pages found at pair current index ${this.currentPairIndex}`,
+      );
+    }
+
+    return pair;
+  }
+
+  getPair(index: number): [Page, Page] | undefined {
+    const pageIndex = index * 2;
+    if (this.pages.length <= pageIndex) {
+      return undefined;
+    }
+
+    return [this.pages[pageIndex], this.pages[pageIndex + 1]];
+  }
+
+  private createPagePair(): [Page, Page] {
+    const leftPage = new Page("left");
+    const rightPage = new Page("right");
+
+    this.pages.push(leftPage, rightPage);
+    return [leftPage, rightPage];
   }
 
   private prepareBookElement() {
@@ -51,7 +80,7 @@ export class Book {
     );
     if (!text) {
       await this.nextPage();
-      await this.writeMessage(message, color);
+      await this.writeMessage(message, this.previousMessageColor);
       return;
     }
 
@@ -65,52 +94,50 @@ export class Book {
 
     if (overflowingText) {
       await this.nextPage(true);
-      await this.writeMessage(overflowingText, color);
+      await this.writeMessage(overflowingText, this.previousMessageColor);
       return;
     }
   }
 
   public async nextPage(isContinuingWriting = false) {
-    if (this.currentWritingPage === this.rightPage) {
+    if (this.currentWritingPage.side === "right") {
       // If we reach the end of the right page, and still have stuff to write
       if (isContinuingWriting) {
         await wait(2000);
       }
 
       await this.flipPage();
-      this.currentWritingPage = this.leftPage;
+      this.currentWritingPage = this.currentPair[0];
       return;
     }
 
-    this.currentWritingPage = this.rightPage;
+    this.currentWritingPage = this.currentPair[1];
   }
 
   public async flipPage() {
-    const oldLeftPage = this.leftPage;
-    const oldRightPage = this.rightPage;
+    const [oldLeftPage, oldRightPage] = this.currentPair;
 
-    this.leftPage = new Page("left");
-    this.rightPage = new Page("right");
-
-    this.book.appendChild(this.leftPage.element);
-    this.book.appendChild(this.rightPage.element);
+    const [leftPage, rightPage] = this.createPagePair();
+    this.book.appendChild(leftPage.element);
+    this.book.appendChild(rightPage.element);
+    this.currentPairIndex++;
 
     // flip previous right page to the left
     oldRightPage.element.classList.add(tw`-rotate-y-180`);
     // force the new leftPage to be flipped OVER the current right page
-    this.leftPage.element.classList.add(tw`rotate-y-180`);
+    leftPage.element.classList.add(tw`rotate-y-180`);
 
     // wait for the browser to properly render the flipped pages
     await nextRepaint();
 
     // then force the left page to animate to its expected position
-    this.leftPage.element.classList.remove(tw`rotate-y-180`);
+    leftPage.element.classList.remove(tw`rotate-y-180`);
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         // hide the old pages (we could remove them from the dom too)
-        oldLeftPage.element.classList.add("hidden");
-        oldRightPage.element.classList.add("hidden");
+        oldLeftPage.destroy();
+        oldRightPage.destroy();
 
         resolve();
       }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition time

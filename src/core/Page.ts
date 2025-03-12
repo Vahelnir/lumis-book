@@ -75,6 +75,11 @@ export class Page {
     return this.contentElement.appendChild(element);
   }
 
+  public destroy() {
+    this.element.remove();
+    this.contentElement.remove();
+  }
+
   private cloneForFitting(size: Size) {
     const clonedElement = this.contentElement.cloneNode(true) as HTMLElement;
     clonedElement.style.visibility = "hidden";
