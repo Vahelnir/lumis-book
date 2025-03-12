@@ -1,37 +1,29 @@
 import { tw } from "@/utils/tw";
 import { typeWriter } from "@/utils/type-writer";
 import { wait } from "@/utils/wait";
+import { Page } from "./Page";
 
-const FLIPPING_ANIMATION_DURATION = 1000;
+export const FLIPPING_ANIMATION_DURATION = 1000;
 
-type MessageProps = { color?: "white" | "gray" };
+export type MessageProps = { color?: "white" | "gray" };
 
 export class Book {
-  leftPage!: HTMLElement;
-  rightPage!: HTMLElement;
-  leftContent!: HTMLElement;
-  rightContent!: HTMLElement;
+  leftPage: Page;
+  rightPage: Page;
 
-  currentContent!: HTMLElement;
+  currentPage: Page;
 
   previousMessageColor: "white" | "gray" = "gray";
 
   constructor(private book: HTMLElement) {
     this.prepareBookElement();
 
-    this.createPages();
-  }
+    this.leftPage = new Page("left");
+    this.rightPage = new Page("right");
+    this.book.appendChild(this.leftPage.element);
+    this.book.appendChild(this.rightPage.element);
 
-  private createPages() {
-    this.leftPage = createPageElement("left");
-    this.leftContent = this.leftPage.querySelector(".page-content")!;
-    this.book.appendChild(this.leftPage);
-
-    this.rightPage = createPageElement("right");
-    this.rightContent = this.rightPage.querySelector(".page-content")!;
-    this.book.appendChild(this.rightPage);
-
-    this.currentContent = this.leftContent;
+    this.currentPage = this.leftPage;
   }
 
   private prepareBookElement() {
@@ -47,7 +39,8 @@ export class Book {
    * It will return the text that fits (or undefined if nothing fits) and the overflowing text (or undefined if nothing overflowed).
    * It tries to fit the message inside of a clone of the `pageContent` element.
    */
-  public async tryFittingMessage(pageContent: HTMLElement, words: string[]) {
+  public async tryFittingMessage(page: Page, words: string[]) {
+    const pageContent = page.contentElement;
     const size = {
       width: pageContent.clientWidth,
       height: pageContent.clientHeight,
@@ -108,7 +101,7 @@ export class Book {
     };
 
     const { text, overflowingText } = await this.tryFittingMessage(
-      this.currentContent,
+      this.currentPage,
       message.split(" "),
     );
     if (!text) {
@@ -118,7 +111,7 @@ export class Book {
     }
 
     const messageElement = createMessageElement(usedMessageProps);
-    this.currentContent.appendChild(messageElement);
+    this.currentPage.appendChild(messageElement);
 
     messageElement.textContent = "";
     await typeWriter(text, (letter) => {
@@ -133,42 +126,46 @@ export class Book {
   }
 
   public async nextPage(isContinuingWriting = false) {
-    if (this.currentContent === this.rightContent) {
+    if (this.currentPage === this.rightPage) {
       // If we reach the end of the right page, and still have stuff to write
       if (isContinuingWriting) {
         await wait(2000);
       }
 
       await this.flipPage();
-      this.currentContent = this.leftContent;
+      this.currentPage = this.leftPage;
       return;
     }
 
-    this.currentContent = this.rightContent;
+    this.currentPage = this.rightPage;
   }
 
   public async flipPage() {
     const oldLeftPage = this.leftPage;
     const oldRightPage = this.rightPage;
 
-    this.createPages();
+    this.leftPage = new Page("left");
+    this.rightPage = new Page("right");
+
+    this.book.appendChild(this.leftPage.element);
+    this.book.appendChild(this.rightPage.element);
 
     // flip previous right page to the left
-    oldRightPage.classList.add(tw`-rotate-y-180`);
+    oldRightPage.element.classList.add(tw`-rotate-y-180`);
     // force the new leftPage to be flipped OVER the current right page
-    this.leftPage.classList.add(tw`rotate-y-180`);
+    this.leftPage.element.classList.add(tw`rotate-y-180`);
 
     // wait for the browser to properly render the flipped pages
     await nextRepaint();
 
     // then force the left page to animate to its expected position
-    this.leftPage.classList.remove(tw`rotate-y-180`);
+    this.leftPage.element.classList.remove(tw`rotate-y-180`);
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         // hide the old pages (we could remove them from the dom too)
-        oldLeftPage.classList.add("hidden");
-        oldRightPage.classList.add("hidden");
+        oldLeftPage.element.classList.add("hidden");
+        oldRightPage.element.classList.add("hidden");
 
         resolve();
       }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition time
@@ -203,28 +200,4 @@ function createMessageElement(props?: MessageProps) {
   }
 
   return messageBlock;
-}
-
-function createPageElement(side: "left" | "right") {
-  const page = document.createElement("div");
-  const classes = tw`absolute right-0 flex h-full w-1/2 flex-col border bg-white shadow transition-transform backface-hidden transform-3d even:border-l-0`;
-  const sideClasses = {
-    left: tw`left-0 origin-right rounded-lg rounded-r-none`,
-    right: tw`right-0 origin-left rounded-lg rounded-l-none`,
-  };
-  page.classList.add(...classes.split(" "), ...sideClasses[side].split(" "));
-  page.style.transitionDuration = `${FLIPPING_ANIMATION_DURATION}ms`;
-
-  const pageContent = createPageContentElement();
-
-  page.appendChild(pageContent);
-  return page;
-}
-
-function createPageContentElement() {
-  const pageContent = document.createElement("div");
-  pageContent.classList.add(
-    ...tw`page-content grow overflow-auto rounded-lg bg-white p-1`.split(" "),
-  );
-  return pageContent;
 }
