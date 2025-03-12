@@ -10,13 +10,19 @@ export type MessageProps = { color?: "white" | "gray" };
 export class Book {
   pages: Page[] = [];
 
-  currentPairIndex = 0;
+  _currentPairIndex = 0;
 
   currentWritingPage: Page;
 
   previousMessageColor: Message["color"] = "gray";
 
-  constructor(private book: HTMLElement) {
+  constructor(
+    private book: HTMLElement,
+    private events: {
+      onCurrentPairChange: (currentPairIndex: number) => void;
+      onPageCreation: (pages: Page[], pair: [Page, Page]) => void;
+    },
+  ) {
     this.prepareBookElement();
 
     const [left, right] = this.createPagePair();
@@ -25,6 +31,15 @@ export class Book {
     this.currentWritingPage = left;
 
     this.currentPairIndex = 0;
+  }
+
+  get currentPairIndex() {
+    return this._currentPairIndex;
+  }
+
+  set currentPairIndex(index: number) {
+    this._currentPairIndex = index;
+    this.events?.onCurrentPairChange(index);
   }
 
   public async movePagePair(offset: number) {
@@ -156,6 +171,7 @@ export class Book {
     const rightPage = new Page("right");
 
     this.pages.push(leftPage, rightPage);
+    this.events?.onPageCreation(this.pages, [leftPage, rightPage]);
     return [leftPage, rightPage];
   }
 

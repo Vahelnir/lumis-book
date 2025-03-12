@@ -5,12 +5,23 @@ import UIButton from "./UIButton.vue";
 
 const bookElement = useTemplateRef("bookElement");
 const book = shallowRef<Book>();
+const currentPair = ref(0);
+const pairCount = ref(0);
 watch(bookElement, async (element, _, onCleanup) => {
   if (!element) {
     return;
   }
 
-  book.value = new Book(element);
+  book.value = new Book(element, {
+    onCurrentPairChange: (currentPairIndex) => {
+      currentPair.value = currentPairIndex;
+    },
+    onPageCreation: (pages) => {
+      pairCount.value = Math.round(pages.length / 2);
+    },
+  });
+
+  currentPair.value = book.value.currentPairIndex;
 
   onCleanup(() => book.value?.destroy());
 });
@@ -39,8 +50,8 @@ async function addMessageEvent() {
     <div class="flex items-center gap-2">
       <UIButton @click="book.movePagePair(-1)">Previous</UIButton>
       <div>
-        {{ book.currentPairIndex + 1 }} /
-        {{ Math.round(book.pages.length / 2) }}
+        {{ currentPair + 1 }} /
+        {{ pairCount }}
       </div>
       <UIButton @click="book.movePagePair(1)">Next</UIButton>
     </div>
