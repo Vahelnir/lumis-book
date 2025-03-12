@@ -1,8 +1,7 @@
 import { tw } from "@/utils/tw";
-import { typeWriter } from "@/utils/type-writer";
 import { wait } from "@/utils/wait";
 import { Page } from "./page";
-import { createMessageElement, type Message } from "./message";
+import { type Message } from "./message";
 
 export const FLIPPING_ANIMATION_DURATION = 1000;
 
@@ -26,42 +25,6 @@ export class Book {
     this.currentWritingPage = left;
 
     this.currentPairIndex = 0;
-  }
-
-  get currentPair() {
-    const pair = this.getPair(this.currentPairIndex);
-    if (!pair) {
-      throw new Error(
-        `No pair of pages found at pair current index ${this.currentPairIndex}`,
-      );
-    }
-
-    return pair;
-  }
-
-  getPair(index: number): [Page, Page] | undefined {
-    const pageIndex = index * 2;
-    if (this.pages.length <= pageIndex) {
-      return undefined;
-    }
-
-    return [this.pages[pageIndex], this.pages[pageIndex + 1]];
-  }
-
-  private createPagePair(): [Page, Page] {
-    const leftPage = new Page("left");
-    const rightPage = new Page("right");
-
-    this.pages.push(leftPage, rightPage);
-    return [leftPage, rightPage];
-  }
-
-  private prepareBookElement() {
-    for (const child of this.book.children) {
-      this.book.removeChild(child);
-    }
-
-    this.book.className = tw`relative flex h-60 w-80 rounded-lg bg-white perspective-distant transform-3d`;
   }
 
   public async writeMessage(
@@ -141,9 +104,45 @@ export class Book {
     });
   }
 
-  destroy() {
+  public destroy() {
     this.book.innerHTML = "";
     // TODO: clear all intervals (maybe use an AbortController?)
+  }
+
+  private get currentPair() {
+    const pair = this.getPair(this.currentPairIndex);
+    if (!pair) {
+      throw new Error(
+        `No pair of pages found at pair current index ${this.currentPairIndex}`,
+      );
+    }
+
+    return pair;
+  }
+
+  private getPair(index: number): [Page, Page] | undefined {
+    const pageIndex = index * 2;
+    if (this.pages.length <= pageIndex) {
+      return undefined;
+    }
+
+    return [this.pages[pageIndex], this.pages[pageIndex + 1]];
+  }
+
+  private createPagePair(): [Page, Page] {
+    const leftPage = new Page("left");
+    const rightPage = new Page("right");
+
+    this.pages.push(leftPage, rightPage);
+    return [leftPage, rightPage];
+  }
+
+  private prepareBookElement() {
+    for (const child of this.book.children) {
+      this.book.removeChild(child);
+    }
+
+    this.book.className = tw`relative flex h-60 w-80 rounded-lg bg-white perspective-distant transform-3d`;
   }
 }
 
