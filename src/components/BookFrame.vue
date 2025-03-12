@@ -27,7 +27,7 @@ async function addMessageEvent() {
   const message = messages[Math.floor(Math.random() * messages.length)];
 
   isMessageTyping.value = true;
-  await book.addMessage(message);
+  await book.writeMessage(message);
   isMessageTyping.value = false;
 }
 </script>

@@ -91,7 +91,7 @@ export class Book {
     return { text: fakeMessageElement.textContent, overflowingText: undefined };
   }
 
-  public async addMessage(
+  public async writeMessage(
     message: string,
     receivedMessageProps?: MessageProps,
   ): Promise<void> {
@@ -113,7 +113,7 @@ export class Book {
     );
     if (!text) {
       await this.nextPage();
-      await this.addMessage(message, usedMessageProps);
+      await this.writeMessage(message, usedMessageProps);
       return;
     }
 
@@ -127,7 +127,7 @@ export class Book {
 
     if (overflowingText) {
       await this.nextPage(true);
-      await this.addMessage(overflowingText, usedMessageProps);
+      await this.writeMessage(overflowingText, usedMessageProps);
       return;
     }
   }
