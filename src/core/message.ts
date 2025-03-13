@@ -8,7 +8,7 @@ export type Message = {
 export function createMessageElement(color: "white" | "gray") {
   const messageBlock = document.createElement("div");
   messageBlock.classList.add(
-    ...tw`message rounded p-1 backface-hidden`.split(" "),
+    ...tw`message rounded p-1 break-words backface-hidden`.split(" "),
   );
   if (color === "gray") {
     messageBlock.classList.add(tw`bg-gray-200`);

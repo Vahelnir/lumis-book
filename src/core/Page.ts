@@ -39,7 +39,7 @@ export class Page {
    * It will return the text that fits (or undefined if nothing fits) and the overflowing text (or undefined if nothing overflowed).
    * It tries to fit the message inside of a clone of the `pageContent` element.
    */
-  public tryFittingMessage(words: string[]) {
+  public tryFittingMessage(text: string) {
     const contentElement = this.getContentElementOrFail();
     const size = {
       width: contentElement.clientWidth,
@@ -47,6 +47,9 @@ export class Page {
     };
 
     const clonedElement = this.cloneForFitting(size);
+
+    // TODO: find a way to properly break the words if too long
+    const words = text.split(" ");
 
     // TODO: create the fake element with the same styles as the real message
     const fakeMessageElement = createMessageElement("white");
@@ -62,6 +65,8 @@ export class Page {
       fakeMessageElement.textContent += word + " ";
 
       if (clonedElement.scrollHeight <= clonedElement.clientHeight) {
+        if (word.length > 10) {
+        }
         continue;
       }
 

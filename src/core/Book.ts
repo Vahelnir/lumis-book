@@ -120,9 +120,8 @@ export class Book {
         this.previousMessageColor === "gray" ? "white" : "gray";
     }
 
-    const { text, overflowingText } = this.currentWritingPage.tryFittingMessage(
-      message.split(" "),
-    );
+    const { text, overflowingText } =
+      this.currentWritingPage.tryFittingMessage(message);
     if (!text) {
       await this.moveWritingPage();
       await this.writeMessage(message, this.previousMessageColor);
