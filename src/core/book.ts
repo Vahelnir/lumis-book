@@ -1,6 +1,6 @@
 import { tw } from "@/utils/tw";
 import { wait } from "@/utils/wait";
-import { Page, PAGE_CLASSES, PAGE_SIDE_CLASSES } from "./page";
+import { GENERIC_PAGE_CLASSES, Page } from "./page";
 import { type Message } from "./message";
 
 export const FLIPPING_ANIMATION_DURATION = 1000;
@@ -299,16 +299,22 @@ export class Book {
   private createCover() {
     const cover = document.createElement("div");
     cover.classList.add(
-      ...PAGE_CLASSES.split(" "),
-      ...PAGE_SIDE_CLASSES["right"].split(" "),
-      ...tw`cover -rotate-y-180`.split(" "),
+      ...GENERIC_PAGE_CLASSES("right").split(" "),
+      ...tw`cover flex -rotate-y-180 items-center justify-center bg-black text-center text-white`.split(
+        " ",
+      ),
     );
 
-    cover.style.background = "black";
-    cover.style.color = "white";
     cover.style.transitionDuration = `${FLIPPING_ANIMATION_DURATION}ms`;
 
-    cover.textContent = "Cover";
+    const spanOne = document.createElement("span");
+    spanOne.textContent = "Lumi's book";
+
+    const spanTwo = document.createElement("span");
+    spanTwo.textContent = "(but ugly)";
+
+    cover.appendChild(spanOne);
+    cover.appendChild(spanTwo);
 
     return cover;
   }

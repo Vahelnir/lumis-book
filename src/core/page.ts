@@ -3,11 +3,19 @@ import { FLIPPING_ANIMATION_DURATION } from "./book";
 import { createMessageElement, type Message } from "./message";
 import { typeWriter } from "@/utils/type-writer";
 
-export const PAGE_CLASSES = tw`page absolute right-0 flex h-full w-1/2 flex-col border bg-white shadow transition-transform backface-hidden transform-3d`;
-export const PAGE_SIDE_CLASSES = {
-  left: tw`page--left left-0 origin-right rounded-lg rounded-r-none`,
-  right: tw`page--right right-0 origin-left rounded-lg rounded-l-none`,
+const SIDE_CLASSES = {
+  left: tw`left-0 origin-right rounded-lg rounded-r-none`,
+  right: tw`right-0 origin-left rounded-lg rounded-l-none`,
 };
+export const GENERIC_PAGE_CLASSES = (side: "left" | "right") => {
+  return [
+    tw`absolute right-0 flex h-full w-1/2 flex-col transition-transform backface-hidden transform-3d`,
+    SIDE_CLASSES[side],
+  ].join(" ");
+};
+
+export const PAGE_CLASSES = (side: "left" | "right") =>
+  [tw`page border bg-white shadow`, GENERIC_PAGE_CLASSES(side)].join(" ");
 
 const PAGE_CONTENT_CLASSES = tw`page-content grow overflow-auto rounded-lg p-1`;
 
@@ -145,10 +153,7 @@ export class Page {
   private createElement() {
     const page = document.createElement("div");
 
-    page.classList.add(
-      ...PAGE_CLASSES.split(" "),
-      ...PAGE_SIDE_CLASSES[this.side].split(" "),
-    );
+    page.classList.add(...PAGE_CLASSES(this.side).split(" "));
     page.style.transitionDuration = `${FLIPPING_ANIMATION_DURATION}ms`;
 
     return page;
