@@ -3,11 +3,14 @@ import { ref, shallowRef, useTemplateRef, watch } from "vue";
 import { Book } from "@/core/book";
 import UIButton from "./UIButton.vue";
 
+const themes = [undefined, "minecraft"] as const;
+
+const selectedTheme = ref<(typeof themes)[number]>();
 const bookElement = useTemplateRef("bookElement");
 const book = shallowRef<Book>();
 const currentPair = ref(0);
 const pairCount = ref(0);
-watch(bookElement, async (element, _, onCleanup) => {
+watch([bookElement, selectedTheme], async ([element], _, onCleanup) => {
   if (!element) {
     return;
   }
@@ -60,7 +63,7 @@ async function handleLoading(promise: Promise<unknown>) {
 </script>
 
 <template>
-  <div ref="bookElement"></div>
+  <div ref="bookElement" :data-theme="selectedTheme"></div>
   <div v-if="book" class="mt-20 flex flex-col gap-4">
     <div class="flex flex-col gap-2">
       <div class="flex items-center gap-2">
@@ -103,6 +106,11 @@ async function handleLoading(promise: Promise<unknown>) {
         <UIButton :disabled="loading" @click="handleLoading(book.close())">
           Fermer
         </UIButton>
+        <select v-model="selectedTheme" class="rounded border px-4 py-2">
+          <option v-for="theme in themes" :key="theme" :value="theme">
+            {{ theme || "Default" }}
+          </option>
+        </select>
       </div>
     </div>
 
@@ -112,3 +120,26 @@ async function handleLoading(promise: Promise<unknown>) {
     </div>
   </div>
 </template>
+
+<style>
+.book[data-theme="minecraft"] {
+  height: 432px;
+  width: 672px;
+
+  .page {
+    padding: 16px 24px;
+    border: none;
+    box-shadow: none;
+
+    &.page--left {
+      background: url(/mc-left-side.png) no-repeat;
+      background-size: contain;
+    }
+
+    &.page--right {
+      background: url(/mc-right-side.png) no-repeat;
+      background-size: contain;
+    }
+  }
+}
+</style>
