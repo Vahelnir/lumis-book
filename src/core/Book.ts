@@ -1,6 +1,6 @@
 import { tw } from "@/utils/tw";
 import { wait } from "@/utils/wait";
-import { Page } from "./page";
+import { Page, PAGE_CLASSES, PAGE_SIDE_CLASSES } from "./page";
 import { type Message } from "./message";
 
 export const FLIPPING_ANIMATION_DURATION = 1000;
@@ -9,12 +9,14 @@ export type MessageProps = { color?: "white" | "gray" };
 
 export class Book {
   pages: Page[] = [];
+  cover?: HTMLElement;
 
   _currentPairIndex = 0;
 
   currentWritingPage: Page;
 
   previousMessageColor: Message["color"] = "gray";
+  pagesElement?: HTMLDivElement;
 
   constructor(
     private book: HTMLElement,
@@ -25,9 +27,14 @@ export class Book {
   ) {
     this.prepareBookElement();
 
+    const pagesElement = this.pagesElement;
+    if (!pagesElement) {
+      throw new Error("No pages element found while constructing the book");
+    }
+
     const [left, right] = this.createPagePair();
-    left.mount(this.book);
-    right.mount(this.book);
+    left.mount(pagesElement);
+    right.mount(pagesElement);
     this.currentWritingPage = left;
 
     this.currentPairIndex = 0;
@@ -54,6 +61,11 @@ export class Book {
   }
 
   public async movePagePair(offset: number) {
+    const pagesElement = this.pagesElement;
+    if (!pagesElement) {
+      throw new Error("No pages element found");
+    }
+
     if (offset === 0) {
       return;
     }
@@ -63,11 +75,18 @@ export class Book {
       return;
     }
 
-    targetPair.map((page) => page.mount(this.book));
+    targetPair.map((page) => page.mount(pagesElement));
 
     const [oldLeftPage, oldRightPage] = this.currentPair;
     if (offset > 0) {
       const [leftPage] = targetPair;
+
+      // make both pages be on top of every other page to avoid
+      // the flicker effect that happens when the old right page
+      // goes over the new left page
+      oldRightPage.element?.classList.add(tw`z-1`);
+      leftPage.element?.classList.add(tw`z-1`);
+
       // flip previous right page to the left
       oldRightPage.element?.classList.add(tw`-rotate-y-180`);
       // force the new leftPage to be flipped OVER the current right page
@@ -80,6 +99,10 @@ export class Book {
       leftPage.element?.classList.remove(tw`rotate-y-180`);
     } else {
       const [, rightPage] = targetPair;
+
+      // make both pages be on top of every other page
+      oldLeftPage.element?.classList.add(tw`z-1`);
+      rightPage.element?.classList.add(tw`z-1`);
       // flip previous right page to the left
       oldLeftPage.element?.classList.add(tw`rotate-y-180`);
       // force the new leftPage to be flipped OVER the current right page
@@ -165,6 +188,62 @@ export class Book {
     this.book.innerHTML = "";
   }
 
+  public async open() {
+    if (!this.cover) {
+      throw new Error("No covers found");
+    }
+
+    const [leftPage, rightPage] = this.currentPair;
+
+    // display the left page
+    leftPage.element?.classList.remove(tw`hidden`);
+
+    await nextRepaint();
+
+    // flip the cover and the left page
+    leftPage.element?.classList.remove(tw`rotate-y-180`);
+    this.cover.classList.add(tw`-rotate-y-180`);
+
+    await nextRepaint();
+
+    // then display the right page
+    rightPage.element?.classList.remove(tw`hidden`);
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        resolve();
+      }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition
+    });
+  }
+
+  public async close() {
+    if (!this.cover) {
+      throw new Error("No covers found");
+    }
+
+    const [leftPage, rightPage] = this.currentPair;
+
+    // make both pages be on top of every other page to avoid
+    // the flicker effect that happens when the old right page
+    // goes over the new left page
+    this.cover.classList.add(tw`z-1`);
+    leftPage.element?.classList.add(tw`z-1`);
+
+    this.cover.classList.remove(tw`-rotate-y-180`);
+    leftPage.element?.classList.add(tw`rotate-y-180`);
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        leftPage.element?.classList.add(tw`hidden`);
+        rightPage.element?.classList.add(tw`hidden`);
+        this.cover?.classList.remove(tw`z-1`);
+        leftPage.element?.classList.remove(tw`z-1`);
+
+        resolve();
+      }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition
+    });
+  }
+
   private get currentPair() {
     const pair = this.getPair(this.currentPairIndex);
     if (!pair) {
@@ -196,12 +275,42 @@ export class Book {
     return [leftPage, rightPage];
   }
 
+  private createPagesElement() {
+    const pagesElement = document.createElement("div");
+    pagesElement.className = tw`absolute h-full w-full transform-3d`;
+
+    return pagesElement;
+  }
+
   private prepareBookElement() {
     for (const child of this.book.children) {
       this.book.removeChild(child);
     }
 
+    this.pagesElement = this.createPagesElement();
+    this.cover = this.createCover();
+
+    this.book.appendChild(this.cover);
+    this.book.appendChild(this.pagesElement);
+
     this.book.className = tw`relative flex h-60 w-80 rounded-lg bg-white perspective-distant transform-3d`;
+  }
+
+  private createCover() {
+    const cover = document.createElement("div");
+    cover.classList.add(
+      ...PAGE_CLASSES.split(" "),
+      ...PAGE_SIDE_CLASSES["right"].split(" "),
+      tw`-rotate-y-180`,
+    );
+
+    cover.style.background = "black";
+    cover.style.color = "white";
+    cover.style.transitionDuration = `${FLIPPING_ANIMATION_DURATION}ms`;
+
+    cover.textContent = "Cover";
+
+    return cover;
   }
 }
 

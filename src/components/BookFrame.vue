@@ -62,39 +62,48 @@ async function handleLoading(promise: Promise<unknown>) {
 <template>
   <div ref="bookElement"></div>
   <div v-if="book" class="mt-20 flex flex-col gap-4">
-    <div class="flex items-center gap-2">
-      <UIButton
-        :disabled="loading || currentPair <= 0"
-        @click="handleLoading(book.moveToPagePair(0))"
-      >
-        First
-      </UIButton>
-      <UIButton
-        :disabled="loading || currentPair <= 0"
-        @click="handleLoading(book.movePagePair(-1))"
-      >
-        Previous
-      </UIButton>
-      <div>
-        {{ currentPair + 1 }} /
-        {{ pairCount }}
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center gap-2">
+        <UIButton
+          :disabled="loading || currentPair <= 0"
+          @click="handleLoading(book.moveToPagePair(0))"
+        >
+          First
+        </UIButton>
+        <UIButton
+          :disabled="loading || currentPair <= 0"
+          @click="handleLoading(book.movePagePair(-1))"
+        >
+          Previous
+        </UIButton>
+        <div>
+          {{ currentPair + 1 }} /
+          {{ pairCount }}
+        </div>
+        <UIButton
+          :disabled="loading || currentPair + 1 >= pairCount"
+          @click="handleLoading(book.movePagePair(1))"
+        >
+          Next
+        </UIButton>
+        <UIButton
+          :disabled="loading || currentPair + 1 >= pairCount"
+          @click="handleLoading(book.moveToPagePair(pairCount - 1))"
+        >
+          Last
+        </UIButton>
       </div>
-      <UIButton
-        :disabled="loading || currentPair + 1 >= pairCount"
-        @click="handleLoading(book.movePagePair(1))"
-      >
-        Next
-      </UIButton>
-      <UIButton
-        :disabled="loading || currentPair + 1 >= pairCount"
-        @click="handleLoading(book.moveToPagePair(pairCount - 1))"
-      >
-        Last
-      </UIButton>
-
-      <UIButton :disabled="loading" @click="addMessageEvent">
-        Add lorem ipsum
-      </UIButton>
+      <div class="flex gap-2">
+        <UIButton :disabled="loading" @click="addMessageEvent">
+          Add "lorem ipsum"
+        </UIButton>
+        <UIButton :disabled="loading" @click="handleLoading(book.open())">
+          Ouvrir
+        </UIButton>
+        <UIButton :disabled="loading" @click="handleLoading(book.close())">
+          Fermer
+        </UIButton>
+      </div>
     </div>
 
     <div class="flex w-80 gap-2">

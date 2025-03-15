@@ -3,8 +3,8 @@ import { FLIPPING_ANIMATION_DURATION } from "./book";
 import { createMessageElement, type Message } from "./message";
 import { typeWriter } from "@/utils/type-writer";
 
-const PAGE_CLASSES = tw`absolute right-0 flex h-full w-1/2 flex-col border bg-white shadow transition-transform backface-hidden transform-3d even:border-l-0`;
-const PAGE_SIDE_CLASSES = {
+export const PAGE_CLASSES = tw`absolute right-0 flex h-full w-1/2 flex-col border bg-white shadow transition-transform backface-hidden transform-3d even:border-l-0`;
+export const PAGE_SIDE_CLASSES = {
   left: tw`left-0 origin-right rounded-lg rounded-r-none`,
   right: tw`right-0 origin-left rounded-lg rounded-l-none`,
 };
