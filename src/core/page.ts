@@ -15,7 +15,11 @@ export const GENERIC_PAGE_CLASSES = (side: "left" | "right") => {
 };
 
 export const PAGE_CLASSES = (side: "left" | "right") =>
-  [tw`page border bg-white shadow`, GENERIC_PAGE_CLASSES(side)].join(" ");
+  [
+    `page--${side}`,
+    tw`page border bg-white shadow`,
+    GENERIC_PAGE_CLASSES(side),
+  ].join(" ");
 
 const PAGE_CONTENT_CLASSES = tw`page-content grow overflow-auto rounded-lg p-1`;
 
