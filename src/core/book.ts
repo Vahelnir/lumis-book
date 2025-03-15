@@ -293,7 +293,7 @@ export class Book {
     this.book.appendChild(this.cover);
     this.book.appendChild(this.pagesElement);
 
-    this.book.className = tw`relative flex h-60 w-80 rounded-lg bg-white perspective-distant transform-3d`;
+    this.book.className = tw`book relative flex h-60 w-80 rounded-lg bg-white perspective-distant transform-3d`;
   }
 
   private createCover() {
@@ -301,7 +301,7 @@ export class Book {
     cover.classList.add(
       ...PAGE_CLASSES.split(" "),
       ...PAGE_SIDE_CLASSES["right"].split(" "),
-      tw`-rotate-y-180`,
+      ...tw`cover -rotate-y-180`.split(" "),
     );
 
     cover.style.background = "black";

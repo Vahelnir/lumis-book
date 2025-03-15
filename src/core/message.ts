@@ -11,7 +11,7 @@ export function createMessageElement(color: "white" | "gray") {
     ...tw`message rounded p-1 break-words backface-hidden`.split(" "),
   );
   if (color === "gray") {
-    messageBlock.classList.add(tw`bg-gray-200`);
+    messageBlock.classList.add(...tw`message--gray bg-stone-300/20`.split(" "));
   }
 
   return messageBlock;
