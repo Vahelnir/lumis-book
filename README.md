@@ -14,6 +14,12 @@ Demo available [here](https://vahelnir.github.io/lumis-book/)
 - [x] must be able to infinitly write into the book;
 - [x] must be able to open and close the book (animated)
 
+### New goals:
+
+- [ ] Implement a dashboard that allow someone to type messages and basically control the book.
+- [ ] The book needs to fade out after a certain amount of time as elapsed after the last message written (start counting at the end of the writing animation).
+- [ ] The book needs to fade in when the message starts writing
+
 ### Bonuses:
 
 - [x] messages are stored
@@ -21,3 +27,12 @@ Demo available [here](https://vahelnir.github.io/lumis-book/)
 - [x] changing (with the pagination) page must be animated
 - [x] we can (lightly) theme the book
 - [ ] book is a custom element
+- [x] book is a vue component
+
+### Technical TODOs:
+
+- [ ] use slots to customize parts of the book
+- [ ] try to refactor this by using state machines or something.
+- [ ] try to refactor this only using Vue (might be easier with state machines)
+- [ ] manage busy states directly inside of the core system
+- [ ] try using animations instead of transitions (and also use the transitionend/transitionstart or animationend/animationstart events)
