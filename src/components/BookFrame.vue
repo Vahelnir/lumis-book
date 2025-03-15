@@ -1,145 +1,98 @@
+<script lang="ts">
+export { Page } from "@/core/page";
+</script>
+
 <script setup lang="ts">
 import { ref, shallowRef, useTemplateRef, watch } from "vue";
 import { Book } from "@/core/book";
-import UIButton from "./UIButton.vue";
+import type { Page } from "@/core/page";
 
-const themes = [undefined, "minecraft"] as const;
+const props = defineProps<{
+  theme?: string;
+}>();
 
-const selectedTheme = ref<(typeof themes)[number]>();
+const emit = defineEmits<{
+  "update:isBusy": [isBusy: boolean];
+  "update:currentPairIndex": [currentPairIndex: number];
+  "update:pages": [pages: Page[]];
+  "update:pairCount": [pairCount: number];
+}>();
+
 const bookElement = useTemplateRef("bookElement");
 const book = shallowRef<Book>();
-const currentPair = ref(0);
-const pairCount = ref(0);
-watch([bookElement, selectedTheme], async ([element], _, onCleanup) => {
+
+watch([bookElement, () => props.theme], async ([element], _, onCleanup) => {
   if (!element) {
     return;
   }
 
   book.value = new Book(element, {
     onCurrentPairChange: (currentPairIndex) => {
-      currentPair.value = currentPairIndex;
+      emit("update:currentPairIndex", currentPairIndex);
     },
     onPageCreation: (pages) => {
-      pairCount.value = Math.round(pages.length / 2);
+      emit("update:pairCount", Math.round(pages.length / 2));
+      emit("update:pages", pages);
     },
   });
 
-  currentPair.value = book.value.currentPairIndex;
+  emit("update:currentPairIndex", book.value.currentPairIndex);
 
   onCleanup(() => book.value?.destroy());
 });
 
-const message = ref("");
-async function sendMessage() {
-  if (!book.value) {
-    return;
-  }
+const isBusy = ref(false);
 
-  const text = message.value;
-  message.value = "";
-  await handleLoading(book.value?.writeMessage(text));
+function setBusy(value: boolean) {
+  isBusy.value = value;
+  emit("update:isBusy", value);
 }
 
-const loading = ref(false);
-async function addMessageEvent() {
-  if (!book.value) {
-    return;
-  }
-
-  const messages = [
-    "Lorem ipsum dolor sit amet, consectetur.",
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-  ];
-  const message = messages[Math.floor(Math.random() * messages.length)];
-
-  await handleLoading(book.value?.writeMessage(message));
-}
-
-async function handleLoading(promise: Promise<unknown>) {
-  loading.value = true;
+async function act(promise: Promise<unknown>) {
+  setBusy(true);
   await promise;
-  loading.value = false;
+  setBusy(false);
 }
+
+defineExpose({
+  async writeMessage(message: string) {
+    if (!book.value) {
+      return;
+    }
+
+    await act(book.value.writeMessage(message));
+  },
+  moveToPagePair: (index: number) => {
+    if (!book.value) {
+      return;
+    }
+
+    return act(book.value.moveToPagePair(index));
+  },
+  movePagePair: (index: number) => {
+    if (!book.value) {
+      return;
+    }
+
+    return act(book.value.movePagePair(index));
+  },
+  open: () => {
+    if (!book.value) {
+      return;
+    }
+
+    return act(book.value.open());
+  },
+  close: () => {
+    if (!book.value) {
+      return;
+    }
+
+    return act(book.value.close());
+  },
+});
 </script>
 
 <template>
-  <div ref="bookElement" :data-theme="selectedTheme"></div>
-  <div v-if="book" class="mt-20 flex flex-col gap-4">
-    <div class="flex flex-col gap-2">
-      <div class="flex items-center gap-2">
-        <UIButton
-          :disabled="loading || currentPair <= 0"
-          @click="handleLoading(book.moveToPagePair(0))"
-        >
-          First
-        </UIButton>
-        <UIButton
-          :disabled="loading || currentPair <= 0"
-          @click="handleLoading(book.movePagePair(-1))"
-        >
-          Previous
-        </UIButton>
-        <div>
-          {{ currentPair + 1 }} /
-          {{ pairCount }}
-        </div>
-        <UIButton
-          :disabled="loading || currentPair + 1 >= pairCount"
-          @click="handleLoading(book.movePagePair(1))"
-        >
-          Next
-        </UIButton>
-        <UIButton
-          :disabled="loading || currentPair + 1 >= pairCount"
-          @click="handleLoading(book.moveToPagePair(pairCount - 1))"
-        >
-          Last
-        </UIButton>
-      </div>
-      <div class="flex gap-2">
-        <UIButton :disabled="loading" @click="addMessageEvent">
-          Add "lorem ipsum"
-        </UIButton>
-        <UIButton :disabled="loading" @click="handleLoading(book.open())">
-          Ouvrir
-        </UIButton>
-        <UIButton :disabled="loading" @click="handleLoading(book.close())">
-          Fermer
-        </UIButton>
-        <select v-model="selectedTheme" class="rounded border px-4 py-2">
-          <option v-for="theme in themes" :key="theme" :value="theme">
-            {{ theme || "Default" }}
-          </option>
-        </select>
-      </div>
-    </div>
-
-    <div class="flex w-80 gap-2">
-      <textarea v-model="message" class="w-full rounded border px-4 py-2" />
-      <UIButton :disabled="loading" @click="sendMessage">Send</UIButton>
-    </div>
-  </div>
+  <div ref="bookElement" :data-theme="theme"></div>
 </template>
-
-<style>
-.book[data-theme="minecraft"] {
-  height: 432px;
-  width: 672px;
-
-  .page {
-    padding: 16px 24px;
-    border: none;
-    box-shadow: none;
-
-    &.page--left {
-      background: url(/mc-left-side.png) no-repeat;
-      background-size: contain;
-    }
-
-    &.page--right {
-      background: url(/mc-right-side.png) no-repeat;
-      background-size: contain;
-    }
-  }
-}
-</style>
