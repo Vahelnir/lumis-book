@@ -141,14 +141,15 @@ export class Page {
   }
 
   private cloneForFitting(size: Size) {
-    const clonedElement = this.getContentElementOrFail().cloneNode(
-      true,
-    ) as HTMLElement;
+    const originalElement = this.getContentElementOrFail();
+    const clonedElement = originalElement.cloneNode(true) as HTMLElement;
+    const computedStyle = window.getComputedStyle(originalElement);
+    for (const key of computedStyle) {
+      clonedElement.style.setProperty(key, computedStyle.getPropertyValue(key));
+    }
+
     clonedElement.style.visibility = "hidden";
     clonedElement.style.position = "absolute";
-    clonedElement.style.left = `-${size.width}px`;
-    clonedElement.style.width = `${size.width}px`;
-    clonedElement.style.height = `${size.height}px`;
     document.body.appendChild(clonedElement);
 
     return clonedElement;
