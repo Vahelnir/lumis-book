@@ -35,6 +35,8 @@ export class Page {
   public contentElement?: HTMLElement;
 
   public messages: Message[] = [];
+  public hidden = false;
+  public flipped = false;
 
   constructor(public side: PageSide) {}
 
@@ -158,10 +160,29 @@ export class Page {
   private createElement() {
     const page = document.createElement("div");
 
-    page.classList.add(...PAGE_CLASSES(this.side).split(" "));
+    this.updateClasses(page);
+
     page.style.transitionDuration = `${FLIPPING_ANIMATION_DURATION}ms`;
 
     return page;
+  }
+
+  private updateClasses(element: HTMLElement) {
+    element.className = [
+      PAGE_CLASSES(this.side),
+      this.flipped ? tw`flipped rotate-y-180` : "",
+      this.hidden ? tw`hidden` : "",
+    ].join(" ");
+  }
+
+  public setFlipped(flipped: boolean) {
+    this.flipped = flipped;
+    if (!this.element) {
+      return;
+    }
+
+    console.log("flipped", flipped);
+    this.updateClasses(this.element);
   }
 
   private createContentElement() {

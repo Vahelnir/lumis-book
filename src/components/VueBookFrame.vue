@@ -22,6 +22,7 @@ const emit = defineEmits<{
   "update:pairCount": [pairCount: number];
 }>();
 
+const isOpened = ref(false);
 const cover = useTemplateRef("coverElement");
 
 const previousMessageColor = ref<Message["color"]>("gray");
@@ -73,6 +74,10 @@ async function writeMessage(
   message: string,
   color?: Message["color"],
 ): Promise<void> {
+  if (!isOpened.value) {
+    await open();
+  }
+
   if (!currentPair.value.includes(currentWritingPage.value)) {
     await focusPage(currentWritingPage.value);
   }
@@ -148,6 +153,19 @@ async function movePagePair(offset: number) {
   }
 
   targetPair.map((page) => page.mount(mountingElement));
+  if (!isOpened.value) {
+    // TODO: open directly to the right page
+    currentPair.value.forEach((page) => page.unmount());
+    currentPairIndex.value += offset;
+    // TODO: manage this state inside of the Page class directly
+    currentPair.value[0].element?.classList.add(
+      tw`rotate-y-180`,
+      tw`hidden`,
+      tw`z-1`,
+    );
+    await nextRepaint();
+    return open();
+  }
 
   const [oldLeftPage, oldRightPage] = currentPair.value;
   if (offset > 0) {
@@ -213,7 +231,10 @@ function getPair(index: number): [Page, Page] | undefined {
 
 function createPagePair(): [Page, Page] {
   const leftPage = new Page("left");
+  leftPage.flipped = true;
+  leftPage.hidden = true;
   const rightPage = new Page("right");
+  rightPage.hidden = true;
 
   pages.value.push(leftPage, rightPage);
   emit("update:pages", pages.value);
@@ -222,6 +243,10 @@ function createPagePair(): [Page, Page] {
 }
 
 async function open() {
+  if (isOpened.value) {
+    return;
+  }
+
   const [leftPage, rightPage] = currentPair.value;
 
   // display the left page
@@ -240,11 +265,17 @@ async function open() {
 
   return new Promise<void>((resolve) => {
     setTimeout(() => {
+      isOpened.value = true;
       resolve();
     }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition
   });
 }
+
 async function close() {
+  if (!isOpened.value) {
+    return;
+  }
+
   const [leftPage, rightPage] = currentPair.value;
 
   // make both pages be on top of every other page to avoid
@@ -262,6 +293,8 @@ async function close() {
       rightPage.element?.classList.add(tw`hidden`);
       cover.value?.classList.remove(tw`z-1`);
       leftPage.element?.classList.remove(tw`z-1`);
+
+      isOpened.value = false;
 
       resolve();
     }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition
@@ -305,7 +338,7 @@ defineExpose({
   >
     <div
       ref="coverElement"
-      class="cover flex -rotate-y-180 items-center justify-center bg-black text-center text-white"
+      class="cover flex items-center justify-center bg-black text-center text-white"
       :class="[GENERIC_PAGE_CLASSES('right')]"
       :style="{
         transitionDuration: `${FLIPPING_ANIMATION_DURATION}ms`,

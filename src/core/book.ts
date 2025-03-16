@@ -9,6 +9,8 @@ export const FLIPPING_ANIMATION_DURATION = 1000;
 export type MessageProps = { color?: "white" | "gray" };
 
 export class Book {
+  isOpened = false;
+
   pages: Page[] = [];
   cover?: HTMLElement;
 
@@ -77,6 +79,18 @@ export class Book {
     }
 
     targetPair.map((page) => page.mount(pagesElement));
+    if (!this.isOpened) {
+      this.currentPair.forEach((page) => page.unmount());
+      this.currentPairIndex += offset;
+      // TODO: manage this state inside of the Page class directly
+      this.currentPair[0].element?.classList.add(
+        tw`rotate-y-180`,
+        tw`hidden`,
+        tw`z-1`,
+      );
+      await nextRepaint();
+      return this.open();
+    }
 
     const [oldLeftPage, oldRightPage] = this.currentPair;
     if (offset > 0) {
@@ -133,6 +147,10 @@ export class Book {
     message: string,
     color?: Message["color"],
   ): Promise<void> {
+    if (!this.isOpened) {
+      await this.open();
+    }
+
     if (!this.currentPair.includes(this.currentWritingPage)) {
       await this.focusPage(this.currentWritingPage);
     }
@@ -190,6 +208,10 @@ export class Book {
   }
 
   public async open() {
+    if (this.isOpened) {
+      return;
+    }
+
     if (!this.cover) {
       throw new Error("No covers found");
     }
@@ -212,12 +234,18 @@ export class Book {
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
+        this.isOpened = true;
+
         resolve();
       }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition
     });
   }
 
   public async close() {
+    if (!this.isOpened) {
+      return;
+    }
+
     if (!this.cover) {
       throw new Error("No covers found");
     }
@@ -239,6 +267,8 @@ export class Book {
         rightPage.element?.classList.add(tw`hidden`);
         this.cover?.classList.remove(tw`z-1`);
         leftPage.element?.classList.remove(tw`z-1`);
+
+        this.isOpened = false;
 
         resolve();
       }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition
@@ -269,7 +299,10 @@ export class Book {
 
   private createPagePair(): [Page, Page] {
     const leftPage = new Page("left");
+    leftPage.flipped = true;
+    leftPage.hidden = true;
     const rightPage = new Page("right");
+    rightPage.hidden = true;
 
     this.pages.push(leftPage, rightPage);
     this.events?.onPageCreation(this.pages, [leftPage, rightPage]);
@@ -301,7 +334,7 @@ export class Book {
     const cover = document.createElement("div");
     cover.classList.add(
       ...GENERIC_PAGE_CLASSES("right").split(" "),
-      ...tw`cover flex -rotate-y-180 items-center justify-center bg-black text-center text-white`.split(
+      ...tw`cover flex items-center justify-center bg-black text-center text-white`.split(
         " ",
       ),
     );
