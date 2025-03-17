@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import {
-  computed,
-  onMounted,
-  onUnmounted,
-  ref,
-  shallowRef,
-  useTemplateRef,
-} from "vue";
-import { GENERIC_PAGE_CLASSES, Page } from "@/core/page";
+import { computed, nextTick, onMounted, ref, useTemplateRef } from "vue";
+import { GENERIC_PAGE_CLASSES } from "@/core/page";
 import type { Message } from "@/core/message";
 import { tw } from "@/utils/tw";
 import { nextRepaint } from "@/utils/nextRepaint";
 import { wait } from "@/utils/wait";
+import type { PageState } from "./BookPage.vue";
+import BookPage from "./BookPage.vue";
 
+export type Page = {
+  state: PageState;
+  shouldMount: boolean;
+  element: InstanceType<typeof BookPage> | undefined;
+};
 const FLIPPING_ANIMATION_DURATION = 1000;
 
 const emit = defineEmits<{
@@ -36,9 +36,9 @@ const currentPairIndex = computed({
   },
 });
 
-const pages = shallowRef<Page[]>([]);
+const pages = ref<Page[]>([]);
 createPagePair(true);
-const currentWritingPage = shallowRef<Page>(pages.value[0]);
+const currentWritingPage = ref<Page>(pages.value[0]);
 
 const currentPair = computed(() => {
   const pair = getPair(currentPairIndex.value);
@@ -52,22 +52,10 @@ const currentPair = computed(() => {
   return pair;
 });
 
-const pagesElement = useTemplateRef("pagesElement");
-
 onMounted(() => {
-  const mountingPoint = pagesElement.value;
-  if (!mountingPoint) {
-    throw new Error("pages element not found");
-  }
-
   const [left, right] = currentPair.value;
-  left.mount(mountingPoint);
-  right.mount(mountingPoint);
-});
-
-onUnmounted(() => {
-  pages.value.forEach((page) => page.unmount());
-  pagesElement.value?.remove();
+  left.shouldMount = true;
+  right.shouldMount = true;
 });
 
 async function writeMessage(
@@ -82,6 +70,10 @@ async function writeMessage(
     await focusPage(currentWritingPage.value);
   }
 
+  if (!currentWritingPage.value.element) {
+    throw new Error("Page element is not available");
+  }
+
   if (color) {
     previousMessageColor.value = color;
   } else {
@@ -90,16 +82,33 @@ async function writeMessage(
   }
 
   const { text, overflowingText } =
-    currentWritingPage.value.tryFittingMessage(message);
+    currentWritingPage.value.element.tryFittingMessage(message);
   if (!text) {
     await moveWritingPage();
     await writeMessage(message, previousMessageColor.value);
     return;
   }
 
-  await currentWritingPage.value.writeMessage({
+  currentWritingPage.value.state.messages.push({
     text,
     color: previousMessageColor.value,
+    writing: true,
+  });
+
+  // TODO: this is hacky af, but it works for now. We should find a better way to do this
+  await new Promise<void>((resolve) => {
+    const checkIfWritingIsDone = () => {
+      if (
+        currentWritingPage.value.state.messages.every(
+          (message) => !message.writing,
+        )
+      ) {
+        resolve();
+      } else {
+        requestAnimationFrame(checkIfWritingIsDone);
+      }
+    };
+    requestAnimationFrame(checkIfWritingIsDone);
   });
 
   if (overflowingText) {
@@ -110,7 +119,7 @@ async function writeMessage(
 }
 
 async function moveWritingPage(isContinuingWriting = false) {
-  if (currentWritingPage.value.side === "right") {
+  if (currentWritingPage.value.state.side === "right") {
     // If we reach the end of the right page, and still have stuff to write
     if (isContinuingWriting) {
       await wait(2000);
@@ -138,11 +147,6 @@ async function moveToPagePair(index: number) {
 }
 
 async function movePagePair(offset: number) {
-  const mountingElement = pagesElement.value;
-  if (!mountingElement) {
-    throw new Error("No pages element found");
-  }
-
   if (offset === 0) {
     return;
   }
@@ -153,66 +157,67 @@ async function movePagePair(offset: number) {
   }
 
   if (!isOpened.value) {
-    currentPair.value.forEach((page) => page.unmount());
+    currentPair.value.forEach((page) => (page.shouldMount = false));
+    await nextTick();
+
     currentPairIndex.value += offset;
-    currentPair.value[0].flipped = true;
-    currentPair.value[0].hidden = true;
-    targetPair.map((page) => page.mount(mountingElement));
+    currentPair.value[0].state.flipped = true;
+    currentPair.value[0].state.hidden = true;
+
+    targetPair.map((page) => (page.shouldMount = true));
+    await nextTick();
 
     return open();
   }
 
   targetPair.map((page) => {
-    page.hidden = false;
-    page.mount(mountingElement);
+    page.state.hidden = false;
+    page.shouldMount = true;
   });
+  await nextTick();
+
   const [oldLeftPage, oldRightPage] = currentPair.value;
   if (offset > 0) {
     const [leftPage] = targetPair;
 
     // flip previous right page to the left
-    oldRightPage.inFront = true;
-    oldRightPage.flipped = true;
-    oldRightPage.update();
+    oldRightPage.state.inFront = true;
+    oldRightPage.state.flipped = true;
     // force the new leftPage to be flipped OVER the current right page
-    leftPage.inFront = true;
-    leftPage.flipped = true;
-    leftPage.update();
+    leftPage.state.inFront = true;
+    leftPage.state.flipped = true;
 
     // wait for the browser to properly render the flipped pages
     await nextRepaint();
 
     // then force the left page to animate to its expected position
-    leftPage.flipped = false;
-    leftPage.update();
+    leftPage.state.flipped = false;
   } else {
     const [, rightPage] = targetPair;
 
     // flip previous right page to the left
-    oldLeftPage.inFront = true;
-    oldLeftPage.flipped = true;
-    oldLeftPage.update();
+    oldLeftPage.state.inFront = true;
+    oldLeftPage.state.flipped = true;
     // force the new leftPage to be flipped OVER the current right page
-    rightPage.inFront = true;
-    rightPage.flipped = true;
-    rightPage.update();
+    rightPage.state.inFront = true;
+    rightPage.state.flipped = true;
 
     // wait for the browser to properly render the flipped pages
     await nextRepaint();
 
     // then force the left page to animate to its expected position
-    rightPage.flipped = false;
-    rightPage.update();
+    rightPage.state.flipped = false;
   }
 
   return new Promise<void>((resolve) => {
-    setTimeout(() => {
-      currentPair.value.forEach((page) => (page.inFront = false));
-      targetPair.forEach((page) => (page.inFront = false));
+    setTimeout(async () => {
+      currentPair.value.forEach((page) => (page.state.inFront = false));
+      targetPair.forEach((page) => (page.state.inFront = false));
 
       // hide the old pages (we could remove them from the dom too)
-      oldLeftPage.unmount();
-      oldRightPage.unmount();
+      oldLeftPage.shouldMount = false;
+      oldRightPage.shouldMount = false;
+      await nextTick();
 
       currentPairIndex.value += offset;
 
@@ -233,14 +238,34 @@ function getPair(index: number): [Page, Page] | undefined {
 }
 
 function createPagePair(initial = false): [Page, Page] {
-  const leftPage = new Page("left");
-  const rightPage = new Page("right");
+  const leftPage: Page = {
+    state: {
+      flipped: false,
+      hidden: false,
+      inFront: false,
+      messages: [],
+      side: "left",
+    },
+    shouldMount: false,
+    element: undefined,
+  };
+  const rightPage: Page = {
+    state: {
+      flipped: false,
+      hidden: false,
+      inFront: false,
+      messages: [],
+      side: "right",
+    },
+    shouldMount: false,
+    element: undefined,
+  };
 
   if (initial) {
-    leftPage.flipped = true;
-    leftPage.hidden = true;
+    leftPage.state.flipped = true;
+    leftPage.state.hidden = true;
 
-    rightPage.hidden = true;
+    rightPage.state.hidden = true;
   }
 
   pages.value.push(leftPage, rightPage);
@@ -259,21 +284,17 @@ async function open() {
   const [leftPage, rightPage] = currentPair.value;
 
   // display the left page
-  leftPage.hidden = false;
-  leftPage.update();
-
+  leftPage.state.hidden = false;
   await nextRepaint();
 
   // flip the cover and the left page
-  leftPage.flipped = false;
-  leftPage.update();
+  leftPage.state.flipped = false;
   cover.value?.classList.add(tw`-rotate-y-180`);
 
   await nextRepaint();
 
   // then display the right page
-  rightPage.hidden = false;
-  rightPage.update();
+  rightPage.state.hidden = false;
 
   return new Promise<void>((resolve) => {
     setTimeout(() => {
@@ -294,22 +315,18 @@ async function close() {
   // goes over the new left page
   // TODO: manage this state inside of the Page class directly
   cover.value?.classList.add(tw`z-1`);
-  leftPage.element?.classList.add(tw`z-1`);
+  leftPage.state.inFront = true;
 
   cover.value?.classList.remove(tw`-rotate-y-180`);
-  leftPage.flipped = true;
-  leftPage.update();
+  leftPage.state.flipped = true;
 
   return new Promise<void>((resolve) => {
     setTimeout(() => {
-      leftPage.hidden = true;
-      leftPage.update();
-      rightPage.hidden = true;
-      rightPage.update();
+      leftPage.state.hidden = true;
+      rightPage.state.hidden = true;
 
       cover.value?.classList.remove(tw`z-1`);
-      leftPage.element?.classList.remove(tw`z-1`);
-
+      leftPage.state.inFront = false;
       isOpened.value = false;
 
       resolve();
@@ -370,6 +387,15 @@ defineExpose({
         <span>(but ugly AF)</span>
       </slot>
     </div>
-    <div ref="pagesElement" class="absolute h-full w-full transform-3d"></div>
+    <div class="absolute h-full w-full transform-3d">
+      <template v-for="(page, index) in pages">
+        <BookPage
+          v-if="page.shouldMount"
+          :ref="(el) => (page.element = el as InstanceType<typeof BookPage>)"
+          :key="index"
+          v-model:state="page.state"
+        />
+      </template>
+    </div>
   </div>
 </template>

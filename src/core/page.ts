@@ -21,7 +21,7 @@ export const PAGE_CLASSES = (side: "left" | "right") =>
     GENERIC_PAGE_CLASSES(side),
   ].join(" ");
 
-const PAGE_CONTENT_CLASSES = tw`page-content grow overflow-auto rounded-lg p-1`;
+export const PAGE_CONTENT_CLASSES = tw`page-content grow overflow-auto rounded-lg p-1`;
 
 type Size = {
   width: number;
@@ -80,8 +80,6 @@ export class Page {
       fakeMessageElement.textContent += word + " ";
 
       if (clonedElement.scrollHeight <= clonedElement.clientHeight) {
-        if (word.length > 10) {
-        }
         continue;
       }
 
