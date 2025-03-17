@@ -31,7 +31,7 @@ Demo available [here](https://vahelnir.github.io/lumis-book/)
 
 ### Technical TODOs:
 
-- [ ] use slots to customize parts of the book
+- [x] use slots to customize parts of the book (Only for the Vue based component, not the binding one)
 - [ ] try to refactor this by using state machines or something.
 - [ ] try to refactor this only using Vue (might be easier with state machines)
 - [ ] manage busy states directly inside of the core system

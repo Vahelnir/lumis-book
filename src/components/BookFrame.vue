@@ -7,7 +7,7 @@ import { ref, shallowRef, useTemplateRef, watch } from "vue";
 import { Book } from "@/core/book";
 import type { Page } from "@/core/page";
 
-const props = defineProps<{
+defineProps<{
   theme?: string;
 }>();
 
@@ -21,7 +21,7 @@ const emit = defineEmits<{
 const bookElement = useTemplateRef("bookElement");
 const book = shallowRef<Book>();
 
-watch([bookElement, () => props.theme], async ([element], _, onCleanup) => {
+watch(bookElement, async (element, _, onCleanup) => {
   if (!element) {
     return;
   }

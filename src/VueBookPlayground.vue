@@ -34,6 +34,8 @@ async function addMessageEvent() {
 
   await book.value?.writeMessage(message);
 }
+
+const count = ref(0);
 </script>
 
 <template>
@@ -45,7 +47,18 @@ async function addMessageEvent() {
       @update:is-animating="isBusy = $event"
       @update:current-pair-index="currentPair = $event"
       @update:pair-count="pairCount = $event"
-    ></VueBookFrame>
+    >
+      <template #cover>
+        Book liked by {{ count }} people
+        <UIButton
+          @click="
+            console.log('hello');
+            count += 1;
+          "
+          >+1</UIButton
+        >
+      </template>
+    </VueBookFrame>
 
     <div v-if="book" class="mt-20 flex flex-col gap-4">
       <div class="flex flex-col gap-2">

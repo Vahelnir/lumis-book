@@ -256,6 +256,8 @@ async function open() {
     return;
   }
 
+  isOpened.value = true;
+
   const [leftPage, rightPage] = currentPair.value;
 
   // display the left page
@@ -277,7 +279,6 @@ async function open() {
 
   return new Promise<void>((resolve) => {
     setTimeout(() => {
-      isOpened.value = true;
       resolve();
     }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition
   });
@@ -356,7 +357,12 @@ defineExpose({
     <div
       ref="coverElement"
       class="cover flex items-center justify-center bg-black text-center text-white"
-      :class="[GENERIC_PAGE_CLASSES('right')]"
+      :class="[
+        GENERIC_PAGE_CLASSES('right'),
+        {
+          'z-1': !isOpened,
+        },
+      ]"
       :style="{
         transitionDuration: `${FLIPPING_ANIMATION_DURATION}ms`,
       }"
