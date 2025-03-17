@@ -16,10 +16,10 @@ import { wait } from "@/utils/wait";
 const FLIPPING_ANIMATION_DURATION = 1000;
 
 const emit = defineEmits<{
-  "update:isAnimating": [isBusy: boolean];
-  "update:currentPairIndex": [currentPairIndex: number];
-  "update:pages": [pages: Page[]];
-  "update:pairCount": [pairCount: number];
+  isAnimating: [isBusy: boolean];
+  currentPairIndexChange: [currentPairIndex: number];
+  pagesChange: [pages: Page[]];
+  pairCountChange: [pairCount: number];
 }>();
 
 const isOpened = ref(false);
@@ -32,7 +32,7 @@ const currentPairIndex = computed({
   get: () => _currentPairIndex.value,
   set: (value: number) => {
     _currentPairIndex.value = value;
-    emit("update:currentPairIndex", value);
+    emit("currentPairIndexChange", value);
   },
 });
 
@@ -246,8 +246,8 @@ function createPagePair(initial = false): [Page, Page] {
   }
 
   pages.value.push(leftPage, rightPage);
-  emit("update:pages", pages.value);
-  emit("update:pairCount", Math.round(pages.value.length / 2));
+  emit("pagesChange", pages.value);
+  emit("pairCountChange", Math.round(pages.value.length / 2));
   return [leftPage, rightPage];
 }
 
@@ -322,7 +322,7 @@ async function close() {
 const isAnimating = ref(false);
 function setAnimating(value: boolean) {
   isAnimating.value = value;
-  emit("update:isAnimating", value);
+  emit("isAnimating", value);
 }
 
 async function waitAnimation(promise: Promise<unknown>) {

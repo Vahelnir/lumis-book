@@ -44,19 +44,13 @@ const count = ref(0);
     <VueBookFrame
       ref="book"
       :data-theme="selectedTheme"
-      @update:is-animating="isBusy = $event"
-      @update:current-pair-index="currentPair = $event"
-      @update:pair-count="pairCount = $event"
+      @is-animating="isBusy = $event"
+      @current-pair-index-change="currentPair = $event"
+      @pair-count-change="pairCount = $event"
     >
       <template #cover>
         Book liked by {{ count }} people
-        <UIButton
-          @click="
-            console.log('hello');
-            count += 1;
-          "
-          >+1</UIButton
-        >
+        <UIButton @click="count += 1">+1</UIButton>
       </template>
     </VueBookFrame>
 
