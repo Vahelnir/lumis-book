@@ -170,16 +170,12 @@ async function movePagePair(offset: number) {
   if (offset > 0) {
     const [leftPage] = targetPair;
 
-    // make both pages be on top of every other page to avoid
-    // the flicker effect that happens when the old right page
-    // goes over the new left page
-    oldRightPage.element?.classList.add(tw`z-1`);
-    leftPage.element?.classList.add(tw`z-1`);
-
     // flip previous right page to the left
+    oldRightPage.inFront = true;
     oldRightPage.flipped = true;
     oldRightPage.update();
     // force the new leftPage to be flipped OVER the current right page
+    leftPage.inFront = true;
     leftPage.flipped = true;
     leftPage.update();
 
@@ -192,13 +188,12 @@ async function movePagePair(offset: number) {
   } else {
     const [, rightPage] = targetPair;
 
-    // make both pages be on top of every other page
-    oldLeftPage.element?.classList.add(tw`z-1`);
-    rightPage.element?.classList.add(tw`z-1`);
     // flip previous right page to the left
+    oldLeftPage.inFront = true;
     oldLeftPage.flipped = true;
     oldLeftPage.update();
     // force the new leftPage to be flipped OVER the current right page
+    rightPage.inFront = true;
     rightPage.flipped = true;
     rightPage.update();
 
@@ -212,6 +207,9 @@ async function movePagePair(offset: number) {
 
   return new Promise<void>((resolve) => {
     setTimeout(() => {
+      currentPair.value.forEach((page) => (page.inFront = false));
+      targetPair.forEach((page) => (page.inFront = false));
+
       // hide the old pages (we could remove them from the dom too)
       oldLeftPage.unmount();
       oldRightPage.unmount();

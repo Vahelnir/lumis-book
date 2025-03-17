@@ -37,6 +37,7 @@ export class Page {
   public messages: Message[] = [];
   public hidden = false;
   public flipped = false;
+  public inFront = false;
 
   constructor(public side: PageSide) {}
 
@@ -182,6 +183,7 @@ export class Page {
         ? tw`flipped ${this.side === "left" ? "rotate-y-180" : "-rotate-y-180"}`
         : "",
       this.hidden ? tw`hidden` : "",
+      this.inFront ? tw`z-1` : "",
     ].join(" ");
   }
 
