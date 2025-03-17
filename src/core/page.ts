@@ -108,6 +108,14 @@ export class Page {
     });
   }
 
+  public update() {
+    if (!this.element) {
+      return;
+    }
+
+    this.updateClasses(this.element);
+  }
+
   public mount(parent: HTMLElement) {
     this.element = this.createElement();
     this.contentElement = this.createContentElement();
@@ -170,7 +178,9 @@ export class Page {
   private updateClasses(element: HTMLElement) {
     element.className = [
       PAGE_CLASSES(this.side),
-      this.flipped ? tw`flipped rotate-y-180` : "",
+      this.flipped
+        ? tw`flipped ${this.side === "left" ? "rotate-y-180" : "-rotate-y-180"}`
+        : "",
       this.hidden ? tw`hidden` : "",
     ].join(" ");
   }

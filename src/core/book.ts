@@ -35,7 +35,7 @@ export class Book {
       throw new Error("No pages element found while constructing the book");
     }
 
-    const [left, right] = this.createPagePair();
+    const [left, right] = this.createPagePair(true);
     left.mount(pagesElement);
     right.mount(pagesElement);
     this.currentWritingPage = left;
@@ -78,20 +78,21 @@ export class Book {
       return;
     }
 
-    targetPair.map((page) => page.mount(pagesElement));
     if (!this.isOpened) {
       this.currentPair.forEach((page) => page.unmount());
       this.currentPairIndex += offset;
-      // TODO: manage this state inside of the Page class directly
-      this.currentPair[0].element?.classList.add(
-        tw`rotate-y-180`,
-        tw`hidden`,
-        tw`z-1`,
-      );
+      this.currentPair[0].flipped = true;
+      this.currentPair[0].hidden = true;
+      targetPair.map((page) => page.mount(pagesElement));
+
       await nextRepaint();
       return this.open();
     }
 
+    targetPair.map((page) => {
+      page.hidden = false;
+      page.mount(pagesElement);
+    });
     const [oldLeftPage, oldRightPage] = this.currentPair;
     if (offset > 0) {
       const [leftPage] = targetPair;
@@ -99,19 +100,23 @@ export class Book {
       // make both pages be on top of every other page to avoid
       // the flicker effect that happens when the old right page
       // goes over the new left page
+      // TODO: manage this state inside of the Page class directly
       oldRightPage.element?.classList.add(tw`z-1`);
       leftPage.element?.classList.add(tw`z-1`);
 
       // flip previous right page to the left
-      oldRightPage.element?.classList.add(tw`-rotate-y-180`);
+      oldRightPage.flipped = true;
+      oldRightPage.update();
       // force the new leftPage to be flipped OVER the current right page
-      leftPage.element?.classList.add(tw`rotate-y-180`);
+      leftPage.flipped = true;
+      leftPage.update();
 
       // wait for the browser to properly render the flipped pages
       await nextRepaint();
 
       // then force the left page to animate to its expected position
-      leftPage.element?.classList.remove(tw`rotate-y-180`);
+      leftPage.flipped = false;
+      leftPage.update();
     } else {
       const [, rightPage] = targetPair;
 
@@ -119,15 +124,18 @@ export class Book {
       oldLeftPage.element?.classList.add(tw`z-1`);
       rightPage.element?.classList.add(tw`z-1`);
       // flip previous right page to the left
-      oldLeftPage.element?.classList.add(tw`rotate-y-180`);
+      oldLeftPage.flipped = true;
+      oldLeftPage.update();
       // force the new leftPage to be flipped OVER the current right page
-      rightPage.element?.classList.add(tw`-rotate-y-180`);
+      rightPage.flipped = true;
+      rightPage.update();
 
       // wait for the browser to properly render the flipped pages
       await nextRepaint();
 
       // then force the left page to animate to its expected position
-      rightPage.element?.classList.remove(tw`-rotate-y-180`);
+      rightPage.flipped = false;
+      rightPage.update();
     }
 
     return new Promise<void>((resolve) => {
@@ -219,23 +227,25 @@ export class Book {
     const [leftPage, rightPage] = this.currentPair;
 
     // display the left page
-    leftPage.element?.classList.remove(tw`hidden`);
+    leftPage.hidden = false;
+    leftPage.update();
 
     await nextRepaint();
 
     // flip the cover and the left page
-    leftPage.element?.classList.remove(tw`rotate-y-180`);
+    leftPage.flipped = false;
+    leftPage.update();
     this.cover.classList.add(tw`-rotate-y-180`);
 
     await nextRepaint();
 
     // then display the right page
-    rightPage.element?.classList.remove(tw`hidden`);
+    rightPage.hidden = false;
+    rightPage.update();
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         this.isOpened = true;
-
         resolve();
       }, FLIPPING_ANIMATION_DURATION); // Match the CSS transition
     });
@@ -259,12 +269,16 @@ export class Book {
     leftPage.element?.classList.add(tw`z-1`);
 
     this.cover.classList.remove(tw`-rotate-y-180`);
-    leftPage.element?.classList.add(tw`rotate-y-180`);
+    leftPage.flipped = true;
+    leftPage.update();
 
     return new Promise<void>((resolve) => {
       setTimeout(() => {
-        leftPage.element?.classList.add(tw`hidden`);
-        rightPage.element?.classList.add(tw`hidden`);
+        leftPage.hidden = true;
+        leftPage.update();
+        rightPage.hidden = true;
+        rightPage.update();
+
         this.cover?.classList.remove(tw`z-1`);
         leftPage.element?.classList.remove(tw`z-1`);
 
@@ -297,12 +311,16 @@ export class Book {
     return [left, right];
   }
 
-  private createPagePair(): [Page, Page] {
+  private createPagePair(initial = false): [Page, Page] {
     const leftPage = new Page("left");
-    leftPage.flipped = true;
-    leftPage.hidden = true;
     const rightPage = new Page("right");
-    rightPage.hidden = true;
+
+    if (initial) {
+      leftPage.flipped = true;
+      leftPage.hidden = true;
+
+      rightPage.hidden = true;
+    }
 
     this.pages.push(leftPage, rightPage);
     this.events?.onPageCreation(this.pages, [leftPage, rightPage]);

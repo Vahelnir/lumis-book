@@ -37,7 +37,7 @@ const currentPairIndex = computed({
 });
 
 const pages = shallowRef<Page[]>([]);
-createPagePair();
+createPagePair(true);
 const currentWritingPage = shallowRef<Page>(pages.value[0]);
 
 const currentPair = computed(() => {
@@ -152,21 +152,20 @@ async function movePagePair(offset: number) {
     return;
   }
 
-  targetPair.map((page) => page.mount(mountingElement));
   if (!isOpened.value) {
-    // TODO: open directly to the right page
     currentPair.value.forEach((page) => page.unmount());
     currentPairIndex.value += offset;
-    // TODO: manage this state inside of the Page class directly
-    currentPair.value[0].element?.classList.add(
-      tw`rotate-y-180`,
-      tw`hidden`,
-      tw`z-1`,
-    );
-    await nextRepaint();
+    currentPair.value[0].flipped = true;
+    currentPair.value[0].hidden = true;
+    targetPair.map((page) => page.mount(mountingElement));
+
     return open();
   }
 
+  targetPair.map((page) => {
+    page.hidden = false;
+    page.mount(mountingElement);
+  });
   const [oldLeftPage, oldRightPage] = currentPair.value;
   if (offset > 0) {
     const [leftPage] = targetPair;
@@ -178,15 +177,18 @@ async function movePagePair(offset: number) {
     leftPage.element?.classList.add(tw`z-1`);
 
     // flip previous right page to the left
-    oldRightPage.element?.classList.add(tw`-rotate-y-180`);
+    oldRightPage.flipped = true;
+    oldRightPage.update();
     // force the new leftPage to be flipped OVER the current right page
-    leftPage.element?.classList.add(tw`rotate-y-180`);
+    leftPage.flipped = true;
+    leftPage.update();
 
     // wait for the browser to properly render the flipped pages
     await nextRepaint();
 
     // then force the left page to animate to its expected position
-    leftPage.element?.classList.remove(tw`rotate-y-180`);
+    leftPage.flipped = false;
+    leftPage.update();
   } else {
     const [, rightPage] = targetPair;
 
@@ -194,15 +196,18 @@ async function movePagePair(offset: number) {
     oldLeftPage.element?.classList.add(tw`z-1`);
     rightPage.element?.classList.add(tw`z-1`);
     // flip previous right page to the left
-    oldLeftPage.element?.classList.add(tw`rotate-y-180`);
+    oldLeftPage.flipped = true;
+    oldLeftPage.update();
     // force the new leftPage to be flipped OVER the current right page
-    rightPage.element?.classList.add(tw`-rotate-y-180`);
+    rightPage.flipped = true;
+    rightPage.update();
 
     // wait for the browser to properly render the flipped pages
     await nextRepaint();
 
     // then force the left page to animate to its expected position
-    rightPage.element?.classList.remove(tw`-rotate-y-180`);
+    rightPage.flipped = false;
+    rightPage.update();
   }
 
   return new Promise<void>((resolve) => {
@@ -229,12 +234,16 @@ function getPair(index: number): [Page, Page] | undefined {
   return [left, right];
 }
 
-function createPagePair(): [Page, Page] {
+function createPagePair(initial = false): [Page, Page] {
   const leftPage = new Page("left");
-  leftPage.flipped = true;
-  leftPage.hidden = true;
   const rightPage = new Page("right");
-  rightPage.hidden = true;
+
+  if (initial) {
+    leftPage.flipped = true;
+    leftPage.hidden = true;
+
+    rightPage.hidden = true;
+  }
 
   pages.value.push(leftPage, rightPage);
   emit("update:pages", pages.value);
@@ -250,18 +259,21 @@ async function open() {
   const [leftPage, rightPage] = currentPair.value;
 
   // display the left page
-  leftPage.element?.classList.remove(tw`hidden`);
+  leftPage.hidden = false;
+  leftPage.update();
 
   await nextRepaint();
 
   // flip the cover and the left page
-  leftPage.element?.classList.remove(tw`rotate-y-180`);
+  leftPage.flipped = false;
+  leftPage.update();
   cover.value?.classList.add(tw`-rotate-y-180`);
 
   await nextRepaint();
 
   // then display the right page
-  rightPage.element?.classList.remove(tw`hidden`);
+  rightPage.hidden = false;
+  rightPage.update();
 
   return new Promise<void>((resolve) => {
     setTimeout(() => {
@@ -281,16 +293,21 @@ async function close() {
   // make both pages be on top of every other page to avoid
   // the flicker effect that happens when the old right page
   // goes over the new left page
+  // TODO: manage this state inside of the Page class directly
   cover.value?.classList.add(tw`z-1`);
   leftPage.element?.classList.add(tw`z-1`);
 
   cover.value?.classList.remove(tw`-rotate-y-180`);
-  leftPage.element?.classList.add(tw`rotate-y-180`);
+  leftPage.flipped = true;
+  leftPage.update();
 
   return new Promise<void>((resolve) => {
     setTimeout(() => {
-      leftPage.element?.classList.add(tw`hidden`);
-      rightPage.element?.classList.add(tw`hidden`);
+      leftPage.hidden = true;
+      leftPage.update();
+      rightPage.hidden = true;
+      rightPage.update();
+
       cover.value?.classList.remove(tw`z-1`);
       leftPage.element?.classList.remove(tw`z-1`);
 
