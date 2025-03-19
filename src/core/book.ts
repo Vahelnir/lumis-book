@@ -80,11 +80,16 @@ export class Book {
 
     if (!this.isOpened) {
       this.currentPair.forEach((page) => page.unmount());
+
       this.currentPairIndex += offset;
+
       this.currentPair[0].flipped = true;
       this.currentPair[0].hidden = true;
-      targetPair.map((page) => page.mount(pagesElement));
+      this.currentPair[0].mount(pagesElement);
 
+      this.currentPair[1].hidden = true;
+      this.currentPair[1].flipped = false;
+      this.currentPair[1].mount(pagesElement);
       await nextRepaint();
       return this.open();
     }

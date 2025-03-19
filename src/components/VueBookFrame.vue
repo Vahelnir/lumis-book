@@ -62,12 +62,12 @@ async function writeMessage(
   message: string,
   color?: Message["color"],
 ): Promise<void> {
-  if (!isOpened.value) {
-    await open();
-  }
-
   if (!currentPair.value.includes(currentWritingPage.value)) {
     await focusPage(currentWritingPage.value);
+  }
+
+  if (!isOpened.value) {
+    await open();
   }
 
   if (!currentWritingPage.value.element) {
@@ -163,8 +163,12 @@ async function movePagePair(offset: number) {
     currentPairIndex.value += offset;
     currentPair.value[0].state.flipped = true;
     currentPair.value[0].state.hidden = true;
+    currentPair.value[0].shouldMount = true;
 
-    targetPair.map((page) => (page.shouldMount = true));
+    currentPair.value[1].state.hidden = true;
+    currentPair.value[1].state.flipped = false;
+    currentPair.value[1].shouldMount = true;
+
     await nextTick();
 
     return open();
