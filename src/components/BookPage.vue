@@ -40,7 +40,7 @@ function tryFittingMessage(text: string) {
     height: contentElement.clientHeight,
   };
 
-  const clonedElement = cloneForFitting(size);
+  const clonedElement = cloneForFitting();
 
   // TODO: find a way to properly break the words if too long
   const words = text.split(" ");
@@ -51,6 +51,7 @@ function tryFittingMessage(text: string) {
   clonedElement.appendChild(fakeMessageElement);
 
   if (clonedElement.scrollHeight > clonedElement.clientHeight) {
+    clonedElement.remove();
     return { text: undefined, overflowingText: words.join(" ") };
   }
 
@@ -59,8 +60,6 @@ function tryFittingMessage(text: string) {
     fakeMessageElement.textContent += word + " ";
 
     if (clonedElement.scrollHeight <= clonedElement.clientHeight) {
-      if (word.length > 10) {
-      }
       continue;
     }
 
@@ -77,7 +76,7 @@ function tryFittingMessage(text: string) {
   return { text: fakeMessageElement.textContent, overflowingText: undefined };
 }
 
-function cloneForFitting(size: Size) {
+function cloneForFitting() {
   const originalElement = getContentElementOrFail();
   const clonedElement = originalElement.cloneNode(true) as HTMLElement;
   const computedStyle = window.getComputedStyle(originalElement);

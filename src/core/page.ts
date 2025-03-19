@@ -61,7 +61,7 @@ export class Page {
       height: contentElement.clientHeight,
     };
 
-    const clonedElement = this.cloneForFitting(size);
+    const clonedElement = this.cloneForFitting();
 
     // TODO: find a way to properly break the words if too long
     const words = text.split(" ");
@@ -149,7 +149,7 @@ export class Page {
     return messageElement;
   }
 
-  private cloneForFitting(size: Size) {
+  private cloneForFitting() {
     const originalElement = this.getContentElementOrFail();
     const clonedElement = originalElement.cloneNode(true) as HTMLElement;
     const computedStyle = window.getComputedStyle(originalElement);
