@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import BookPlayground from "./BookPlayground.vue";
-import VueBookPlayground from "./VueBookPlayground.vue";
+import BookPlayground from "./components/BookPlayground.vue";
+import VueBookPlayground from "./components/VueBookPlayground.vue";
 </script>
 
 <template>
