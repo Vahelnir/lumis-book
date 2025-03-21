@@ -7,8 +7,9 @@ export type Message = {
 </script>
 
 <script setup lang="ts">
-import { typeWriter } from "@/utils/type-writer";
 import { onMounted, ref } from "vue";
+
+import { typeWriter } from "@/utils/type-writer";
 
 const message = defineModel<Message>({ required: true });
 

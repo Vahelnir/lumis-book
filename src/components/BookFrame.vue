@@ -4,6 +4,7 @@ export { Page } from "@/core/page";
 
 <script setup lang="ts">
 import { ref, shallowRef, useTemplateRef, watch } from "vue";
+
 import { Book } from "@/core/book";
 import type { Page } from "@/core/page";
 

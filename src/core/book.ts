@@ -1,8 +1,9 @@
+import { nextRepaint } from "@/utils/nextRepaint";
 import { tw } from "@/utils/tw";
 import { wait } from "@/utils/wait";
-import { GENERIC_PAGE_CLASSES, Page } from "./page";
+
 import { type Message } from "./message";
-import { nextRepaint } from "@/utils/nextRepaint";
+import { GENERIC_PAGE_CLASSES, Page } from "./page";
 
 export const FLIPPING_ANIMATION_DURATION = 1000;
 

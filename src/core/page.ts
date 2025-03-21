@@ -1,7 +1,8 @@
 import { tw } from "@/utils/tw";
+import { typeWriter } from "@/utils/type-writer";
+
 import { FLIPPING_ANIMATION_DURATION } from "./book";
 import { createMessageElement, type Message } from "./message";
-import { typeWriter } from "@/utils/type-writer";
 
 const SIDE_CLASSES = {
   left: tw`left-0 origin-right rounded-lg rounded-r-none`,

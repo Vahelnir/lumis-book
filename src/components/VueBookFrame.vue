@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, useTemplateRef } from "vue";
-import { GENERIC_PAGE_CLASSES } from "@/core/page";
+
 import type { Message } from "@/core/message";
-import { tw } from "@/utils/tw";
+import { GENERIC_PAGE_CLASSES } from "@/core/page";
 import { nextRepaint } from "@/utils/nextRepaint";
+import { tw } from "@/utils/tw";
 import { wait } from "@/utils/wait";
-import type { PageState } from "./BookPage.vue";
-import BookPage from "./BookPage.vue";
+
+import BookPage, { type PageState } from "./BookPage.vue";
 
 export type Page = {
   state: PageState;

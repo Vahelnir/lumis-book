@@ -14,12 +14,13 @@ export type Size = {
 </script>
 
 <script setup lang="ts">
+import { useTemplateRef } from "vue";
+
 import { FLIPPING_ANIMATION_DURATION } from "@/core/book";
 import { createMessageElement } from "@/core/message";
 import { PAGE_CLASSES, PAGE_CONTENT_CLASSES } from "@/core/page";
-import { useTemplateRef } from "vue";
-import type { Message } from "./BookMessage.vue";
-import BookMessage from "./BookMessage.vue";
+
+import BookMessage, { type Message } from "./BookMessage.vue";
 
 const state = defineModel<PageState>("state", { required: true });
 
