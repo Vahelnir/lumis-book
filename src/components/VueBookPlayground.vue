@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, useTemplateRef } from "vue";
 
-import UIButton from "./UIButton.vue";
+import UIButton from "./ui/UIButton.vue";
 import VueBookFrame from "./VueBookFrame.vue";
 
 const book = useTemplateRef<InstanceType<typeof VueBookFrame>>("book");

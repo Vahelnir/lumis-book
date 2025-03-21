@@ -2,7 +2,7 @@
 import { ref, useTemplateRef } from "vue";
 
 import BookFrame from "./BookFrame.vue";
-import UIButton from "./UIButton.vue";
+import UIButton from "./ui/UIButton.vue";
 
 const book = useTemplateRef<InstanceType<typeof BookFrame>>("book");
 const themes = [undefined, "minecraft"] as const;
