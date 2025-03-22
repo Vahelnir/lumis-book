@@ -192,7 +192,6 @@ export class Page {
       return;
     }
 
-    console.log("flipped", flipped);
     this.updateClasses(this.element);
   }
 

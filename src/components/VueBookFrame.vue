@@ -43,7 +43,6 @@ const currentWritingPage = ref<Page>(pages.value[0]);
 
 const currentPair = computed(() => {
   const pair = getPair(currentPairIndex.value);
-  console.log("currentPair", pair, pages.value);
   if (!pair) {
     throw new Error(
       `No pair of pages found at pair current index ${currentPairIndex.value}`,
