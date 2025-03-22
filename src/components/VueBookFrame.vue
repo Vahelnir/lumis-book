@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, useTemplateRef } from "vue";
 
+import { FLIPPING_ANIMATION_DURATION } from "@/core/book";
 import type { Message } from "@/core/message";
 import { GENERIC_PAGE_CLASSES } from "@/core/page";
 import { nextRepaint } from "@/utils/nextRepaint";
@@ -14,7 +15,6 @@ export type Page = {
   shouldMount: boolean;
   element: InstanceType<typeof BookPage> | undefined;
 };
-const FLIPPING_ANIMATION_DURATION = 1000;
 
 const emit = defineEmits<{
   isAnimating: [isBusy: boolean];

@@ -5,7 +5,7 @@ import { wait } from "@/utils/wait";
 import { type Message } from "./message";
 import { GENERIC_PAGE_CLASSES, Page } from "./page";
 
-export const FLIPPING_ANIMATION_DURATION = 1000;
+export const FLIPPING_ANIMATION_DURATION = 700;
 
 export type MessageProps = { color?: "white" | "gray" };
 
