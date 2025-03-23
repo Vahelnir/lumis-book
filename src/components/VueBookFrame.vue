@@ -7,6 +7,7 @@ import { GENERIC_PAGE_CLASSES } from "@/core/page";
 import { nextRepaint } from "@/utils/nextRepaint";
 import { tw } from "@/utils/tw";
 import { wait } from "@/utils/wait";
+import { waitForStateChange } from "@/utils/waitForStateChange";
 
 import BookPage, { type PageState } from "./BookPage.vue";
 
@@ -96,20 +97,11 @@ async function writeMessage(
   });
 
   // TODO: this is hacky af, but it works for now. We should find a better way to do this
-  await new Promise<void>((resolve) => {
-    const checkIfWritingIsDone = () => {
-      if (
-        currentWritingPage.value.state.messages.every(
-          (message) => !message.writing,
-        )
-      ) {
-        resolve();
-      } else {
-        requestAnimationFrame(checkIfWritingIsDone);
-      }
-    };
-    requestAnimationFrame(checkIfWritingIsDone);
-  });
+  await waitForStateChange(() =>
+    currentWritingPage.value.state.messages.every(
+      (message) => !message.writing,
+    ),
+  );
 
   if (overflowingText) {
     await moveWritingPage(true);
