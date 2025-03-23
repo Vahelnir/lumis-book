@@ -1,3 +1,5 @@
+import { TYPING_ANIMATION_DURATION } from "@/core/constants";
+
 export async function typeWriter(text: string, func: (letter: string) => void) {
   return new Promise<ReturnType<typeof setInterval>>((resolve) => {
     let index = 0;
@@ -8,6 +10,6 @@ export async function typeWriter(text: string, func: (letter: string) => void) {
         clearInterval(intervalId);
         resolve(intervalId);
       }
-    }, 40);
+    }, TYPING_ANIMATION_DURATION);
   });
 }

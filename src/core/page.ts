@@ -1,7 +1,7 @@
 import { tw } from "@/utils/tw";
 import { typeWriter } from "@/utils/type-writer";
 
-import { FLIPPING_ANIMATION_DURATION } from "./book";
+import { FLIPPING_ANIMATION_DURATION } from "./constants";
 import { createMessageElement, type Message } from "./message";
 
 const SIDE_CLASSES = {

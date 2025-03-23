@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, useTemplateRef } from "vue";
 
-import { FLIPPING_ANIMATION_DURATION } from "@/core/book";
+import { FLIPPING_ANIMATION_DURATION } from "@/core/constants";
 import type { Message } from "@/core/message";
 import { GENERIC_PAGE_CLASSES } from "@/core/page";
 import { nextRepaint } from "@/utils/nextRepaint";

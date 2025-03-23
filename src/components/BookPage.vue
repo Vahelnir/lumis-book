@@ -16,7 +16,7 @@ export type Size = {
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
 
-import { FLIPPING_ANIMATION_DURATION } from "@/core/book";
+import { FLIPPING_ANIMATION_DURATION } from "@/core/constants";
 import { createMessageElement } from "@/core/message";
 import { PAGE_CLASSES, PAGE_CONTENT_CLASSES } from "@/core/page";
 

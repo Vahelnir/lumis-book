@@ -2,10 +2,9 @@ import { nextRepaint } from "@/utils/nextRepaint";
 import { tw } from "@/utils/tw";
 import { wait } from "@/utils/wait";
 
+import { FLIPPING_ANIMATION_DURATION } from "./constants";
 import { type Message } from "./message";
 import { GENERIC_PAGE_CLASSES, Page } from "./page";
-
-export const FLIPPING_ANIMATION_DURATION = 700;
 
 export type MessageProps = { color?: "white" | "gray" };
 
