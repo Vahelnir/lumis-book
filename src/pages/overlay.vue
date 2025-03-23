@@ -4,48 +4,95 @@ import { ref, useTemplateRef } from "vue";
 import UIButton from "@/components/ui/UIButton.vue";
 import VueBookFrame from "@/components/VueBookFrame.vue";
 
+const CLOSE_AFTER_LAST_MESSAGE_TIMEOUT_MS = 8_000;
+
 const hidden = ref(true);
+const currentMessage = ref("");
+const transitioning = ref(false);
+const isOpened = ref(false);
 
 const bookFrame = useTemplateRef("bookFrame");
 
-async function toggle() {
-  if (hidden.value) {
-    return open();
-  }
+async function fadeIn() {
+  if (isOpened.value) return;
 
-  return close();
-}
-
-async function open() {
   hidden.value = false;
+  transitioning.value = true;
+
+  await waitForStateChange(() => !transitioning.value);
+  isOpened.value = true;
 }
 
-async function close() {
-  await bookFrame.value?.close();
+async function fadeOut() {
+  if (!isOpened.value) return;
+
   hidden.value = true;
+  transitioning.value = true;
+
+  await waitForStateChange(() => !transitioning.value);
+  isOpened.value = false;
 }
 
-async function onAnimationEnd() {
-  if (hidden.value) {
-    return;
-  }
+async function send() {
+  if (currentMessage.value.trim() === "") return;
 
-  await bookFrame.value?.open();
+  const text = currentMessage.value;
+  currentMessage.value = "";
+
+  await fadeIn();
+  await bookFrame.value?.writeMessage(text);
+  scheduleClosing();
+}
+
+let closingTimeoutId: ReturnType<typeof setTimeout> | undefined;
+function scheduleClosing() {
+  if (closingTimeoutId) clearTimeout(closingTimeoutId);
+  closingTimeoutId = setTimeout(async () => {
+    await bookFrame.value?.close();
+    await fadeOut();
+  }, CLOSE_AFTER_LAST_MESSAGE_TIMEOUT_MS);
+}
+
+async function waitForStateChange(func: () => unknown | Promise<unknown>) {
+  await new Promise<void>((resolve) => {
+    const checkIfWritingIsDone = async () => {
+      const funcResult = func();
+      const result =
+        funcResult instanceof Promise ? await funcResult : funcResult;
+      if (!result) {
+        requestAnimationFrame(checkIfWritingIsDone);
+        return;
+      }
+
+      resolve();
+    };
+
+    requestAnimationFrame(checkIfWritingIsDone);
+  });
 }
 </script>
 
 <template>
-  <UIButton @click="toggle">Close</UIButton>
-
   <div
-    class="fixed top-40 right-20 opacity-0"
+    class="fixed top-40 right-20 transition-all duration-1000"
     :class="{
-      'animate-out': hidden,
-      'animate-in': !hidden,
+      'translate-y-0 opacity-100': !hidden,
+      'translate-y-40 opacity-0': hidden,
     }"
-    @animationend="onAnimationEnd"
+    @transitionstart="transitioning = true"
+    @transitionend="transitioning = false"
   >
     <VueBookFrame ref="bookFrame"></VueBookFrame>
+  </div>
+
+  <div class="flex gap-2">
+    <textarea
+      v-model="currentMessage"
+      type="text"
+      class="rounded border px-4 py-2"
+      @keydown.enter.prevent.stop="send"
+    />
+    <UIButton @click="send()"> Send </UIButton>
   </div>
 </template>
 
