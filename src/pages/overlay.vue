@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, useTemplateRef } from "vue";
 
+import { waitForStateChange } from "@/utils/waitForStateChange";
+
 import UIButton from "@/components/ui/UIButton.vue";
 import VueBookFrame from "@/components/VueBookFrame.vue";
 
@@ -8,6 +10,7 @@ const CLOSE_AFTER_LAST_MESSAGE_TIMEOUT_MS = 8_000;
 
 const hidden = ref(true);
 const currentMessage = ref("");
+const messageQueue = ref<string[]>([]);
 const transitioning = ref(false);
 const isOpened = ref(false);
 
@@ -39,36 +42,37 @@ async function send() {
   const text = currentMessage.value;
   currentMessage.value = "";
 
+  messageQueue.value.push(text);
+  await sendAllMessages();
+}
+
+const isSending = ref(false);
+async function sendAllMessages() {
+  if (isSending.value) return;
+
+  isSending.value = true;
+  clearScheduledClosing();
   await fadeIn();
-  await bookFrame.value?.writeMessage(text);
+  while (messageQueue.value.length > 0) {
+    const message = messageQueue.value.shift()!;
+    await bookFrame.value?.writeMessage(message);
+  }
+
+  messageQueue.value = [];
   scheduleClosing();
+  isSending.value = false;
 }
 
 let closingTimeoutId: ReturnType<typeof setTimeout> | undefined;
 function scheduleClosing() {
-  if (closingTimeoutId) clearTimeout(closingTimeoutId);
   closingTimeoutId = setTimeout(async () => {
     await bookFrame.value?.close();
     await fadeOut();
   }, CLOSE_AFTER_LAST_MESSAGE_TIMEOUT_MS);
 }
 
-async function waitForStateChange(func: () => unknown | Promise<unknown>) {
-  await new Promise<void>((resolve) => {
-    const checkIfWritingIsDone = async () => {
-      const funcResult = func();
-      const result =
-        funcResult instanceof Promise ? await funcResult : funcResult;
-      if (!result) {
-        requestAnimationFrame(checkIfWritingIsDone);
-        return;
-      }
-
-      resolve();
-    };
-
-    requestAnimationFrame(checkIfWritingIsDone);
-  });
+function clearScheduledClosing() {
+  if (closingTimeoutId) clearTimeout(closingTimeoutId);
 }
 </script>
 
