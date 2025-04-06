@@ -6,7 +6,9 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  apps/dashboard:
     dependencies:
       pinia:
         specifier: ^3.0.1
